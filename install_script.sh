@@ -283,7 +283,7 @@ show_menu() {
     echo "======================================="
     echo "               MENU PRINCIPAL          "
     echo "======================================="
-    echo "1) Installer les outils nécessaires"
+    echo "1) les outils nécessaires"
     echo "2) Installer et configurer Mosquitto (MQTT)"
     echo "3) Installer Docker"
     echo "4) Installer SRS (Simple Real-time Server)"

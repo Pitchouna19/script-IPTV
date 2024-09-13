@@ -152,16 +152,7 @@ install_mosquitto() {
                 echo "L'installation du client Mosquitto a échoué."
             fi
             ;;
-        3)
-            echo "Installation du serveur et client Mosquitto..."
-            sudo apt install -y mosquitto mosquitto-clients
-            if mosquitto -v &> /dev/null && mosquitto_sub -h &> /dev/null; then
-                echo "Serveur et Client Mosquitto installés avec succès."
-                configure_mosquitto_security
-            else
-                echo "L'installation du serveur ou du client Mosquitto a échoué."
-            fi
-            ;;
+        
         *)
             echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
             ;;

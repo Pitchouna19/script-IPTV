@@ -108,6 +108,16 @@ EOF'
     sudo systemctl restart mosquitto
 }
 
+# Fonction pour configurer un topic Mosquitto par défaut
+configure_mosquitto_topic() {
+    echo "Création du topic 'serveur/link'..."
+    sudo bash -c 'cat >> /etc/mosquitto/conf.d/default.conf << EOF
+topic readwrite serveur/link
+EOF'
+    echo "Redémarrage du service Mosquitto pour appliquer les modifications..."
+    sudo systemctl restart mosquitto
+}
+
 # Fonction pour installer Mosquitto (MQTT)
 install_mosquitto() {
     echo "Que souhaitez-vous installer pour Mosquitto (MQTT) ?"
@@ -123,6 +133,7 @@ install_mosquitto() {
             if mosquitto -v &> /dev/null; then
                 echo "Serveur Mosquitto installé avec succès."
                 configure_mosquitto_security
+                configure_mosquitto_topic  # Ajout du topic
             else
                 echo "L'installation du serveur Mosquitto a échoué."
             fi
@@ -142,6 +153,7 @@ install_mosquitto() {
             if mosquitto -v &> /dev/null && mosquitto_sub -h &> /dev/null; then
                 echo "Serveur et Client Mosquitto installés avec succès."
                 configure_mosquitto_security
+                configure_mosquitto_topic  # Ajout du topic
             else
                 echo "L'installation du serveur ou du client Mosquitto a échoué."
             fi
@@ -224,78 +236,87 @@ EOF'
         echo "Création d'un service systemd pour SRS..."
         sudo bash -c 'cat > /etc/systemd/system/srs-docker.service << EOF
 [Unit]
-Description=SRS Docker Container
-Requires=docker.service
+Description=SRS (Simple Realtime Server)
 After=docker.service
+Requires=docker.service
 
 [Service]
 ExecStart=/usr/local/bin/start-srs.sh
 ExecStop=/usr/bin/docker stop srs
 Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
 EOF'
         
-        # Recharger systemd, activer et démarrer le service SRS
+        # Recharger systemd, activer et démarrer SRS
+        echo "Activation et démarrage du service SRS..."
         sudo systemctl daemon-reload
-        sudo systemctl enable srs-docker.service
-        sudo systemctl start srs-docker.service
-        
-        echo "SRS a été installé et configuré pour démarrer automatiquement."
+        sudo systemctl enable srs-docker
+        sudo systemctl start srs-docker
     else
-        echo "Docker n'est pas installé. Veuillez d'abord installer Docker."
+        echo "Docker n'est pas installé. Impossible d'installer SRS."
     fi
 }
 
-# Liste des options avec indication d'installation
-echo "Choisissez ce que vous souhaitez installer :"
-echo -n "1) Installer nginx "; check_installed nginx
-echo -n "2) Installer Mosquitto (MQTT) "; check_installed mosquitto
-echo -n "3) Installer curl "; check_installed curl
-echo -n "4) Installer git "; check_installed git
-echo -n "5) Installer Docker "; check_installed docker
-echo -n "6) Installer SRS (nécessite Docker) "; check_installed docker
-echo "7) Installer tout"
-echo "8) Sortir Exit"
-
-read -p "Entrez le numéro de votre choix : " choice
-
-# Exécution selon le choix
-case $choice in
-    1)
-        install_nginx
-        ;;
-    2)
-        install_mosquitto
-        ;;
-    3)
-        install_curl
-        ;;
-    4)
-        install_git
-        ;;
-    5)
-        install_docker
-        ;;
-    6)
-        install_srs
-        ;;
-    7)
-        install_nginx
-        install_mosquitto
-        install_curl
-        install_git
-        install_docker
-        install_srs
-        ;;
-    8)
-        echo "Sortie du script."
-        exit 0
-        ;;
-    *)
-        echo "Choix invalide. Veuillez relancer le script et sélectionner un numéro valide."
-        ;;
-esac
-
-echo "Installation terminée."
+# Menu principal
+PS3="Que souhaitez-vous installer ? "
+options=("Outils de compilation" "Unzip" "Automake" "Tclsh" "Cmake" "Pkg-config" "nginx" "Mosquitto (MQTT)" "Curl" "Git" "Docker" "SRS via Docker" "Quitter")
+select opt in "${options[@]}"
+do
+    case $opt in
+        "Outils de compilation")
+            check_installed build-essential
+            install_build_essentials
+            ;;
+        "Unzip")
+            check_installed unzip
+            install_unzip
+            ;;
+        "Automake")
+            check_installed automake
+            install_automake
+            ;;
+        "Tclsh")
+            check_installed tclsh
+            install_tclsh
+            ;;
+        "Cmake")
+            check_installed cmake
+            install_cmake
+            ;;
+        "Pkg-config")
+            check_installed pkg-config
+            install_pkg_config
+            ;;
+        "nginx")
+            check_installed nginx
+            install_nginx
+            ;;
+        "Mosquitto (MQTT)")
+            check_installed mosquitto
+            install_mosquitto
+            ;;
+        "Curl")
+            check_installed curl
+            install_curl
+            ;;
+        "Git")
+            check_installed git
+            install_git
+            ;;
+        "Docker")
+            check_installed docker
+            install_docker
+            ;;
+        "SRS via Docker")
+            check_installed docker
+            install_srs
+            ;;
+        "Quitter")
+            break
+            ;;
+        *) echo "Option invalide $REPLY";;
+    esac
+done

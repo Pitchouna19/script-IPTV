@@ -90,6 +90,9 @@ install_nginx() {
 
 # Fonction pour configurer le serveur Mosquitto avec utilisateur et mot de passe
 configure_mosquitto_security() {
+    # Récupérer le nom de l'ordinateur
+    local hostname=$(hostname)
+    
     echo "Configuration de la sécurité pour Mosquitto..."
     sudo bash -c 'cat > /etc/mosquitto/conf.d/default.conf << EOF
 allow_anonymous false
@@ -97,7 +100,9 @@ password_file /etc/mosquitto/passwd
 EOF'
 
     sudo touch /etc/mosquitto/passwd
-    sudo mosquitto_passwd -b /etc/mosquitto/passwd iptv-serv-mqtt 19041980
+    
+    # Utiliser le nom de l'ordinateur dans la commande mosquitto_passwd
+    sudo mosquitto_passwd -b /etc/mosquitto/passwd $hostname 19041980
 
     echo "Redémarrage du service Mosquitto pour appliquer les modifications..."
     sudo systemctl restart mosquitto

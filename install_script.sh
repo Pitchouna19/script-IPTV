@@ -108,30 +108,10 @@ EOF'
     sudo systemctl restart mosquitto
 }
 
-# Fonction pour publier un message sur le topic 'serveur/link'
+# Fonction pour configurer un topic spécifique
 configure_mosquitto_topic() {
-    echo "Publication d'un message sur le topic 'serveur/link'..."
-    # Publiant un message initial sur le topic 'serveur/link'
-    mosquitto_pub -h localhost -u $(hostname) -P 19041980 -t "serveur/link" -m "Le serveur Mosquitto est en ligne."
-}
-
-# Fonction pour configurer le client Mosquitto
-configure_mosquitto_client() {
-    read -p "Entrez l'adresse IP du broker Mosquitto : " broker_ip
-    read -p "Entrez le nom d'utilisateur pour le client Mosquitto : " client_username
-    read -sp "Entrez le mot de passe pour le client Mosquitto : " client_password
-    echo
-
-    echo "Configuration du client Mosquitto avec l'adresse IP du broker : $broker_ip"
-
-    # Créer un fichier de configuration pour le client
-    sudo bash -c "cat > /etc/mosquitto/mosquitto.conf << EOF
-# Configuration du client Mosquitto
-connection mybroker
-address $broker_ip
-username $client_username
-password $client_password
-EOF"
+    echo "Configuration du topic 'serveur/link'..."
+    mosquitto_pub -t "serveur/link" -m "Configuration du topic 'serveur/link'"
 }
 
 # Fonction pour installer Mosquitto (MQTT)
@@ -139,7 +119,6 @@ install_mosquitto() {
     echo "Que souhaitez-vous installer pour Mosquitto (MQTT) ?"
     echo "1) Serveur Mosquitto"
     echo "2) Client Mosquitto"
-    echo "3) Serveur et Client Mosquitto"
     read -p "Entrez le numéro de votre choix : " mosquitto_choice
 
     case $mosquitto_choice in
@@ -154,31 +133,34 @@ install_mosquitto() {
                 echo "L'installation du serveur Mosquitto a échoué."
             fi
             ;;
-
         2)
             echo "Installation du client Mosquitto..."
             sudo apt install -y mosquitto-clients
-            if mosquitto_pub -h &> /dev/null; then
+            if mosquitto_sub -h &> /dev/null; then
                 echo "Client Mosquitto installé avec succès."
-                configure_mosquitto_client
+                read -p "Entrez l'adresse IP du broker : " broker_ip
+                read -p "Entrez le nom d'utilisateur : " username
+                read -sp "Entrez le mot de passe : " password
+                echo
+
+                # Création de la configuration pour le client
+                echo "Adresse IP du broker : $broker_ip"
+                echo "Nom d'utilisateur : $username"
+                echo "Mot de passe : $password"
+
+                echo "Configuration du client Mosquitto..."
+                sudo bash -c "cat > /etc/mosquitto/mosquitto.conf << EOF
+connection mybroker
+address $broker_ip
+username $username
+password $password
+EOF"
+
+                echo "Configuration du client Mosquitto terminée."
             else
                 echo "L'installation du client Mosquitto a échoué."
             fi
             ;;
-
-        3)
-            echo "Installation du serveur et client Mosquitto..."
-            sudo apt install -y mosquitto mosquitto-clients
-            if mosquitto -v &> /dev/null && mosquitto_pub -h &> /dev/null; then
-                echo "Serveur et Client Mosquitto installés avec succès."
-                configure_mosquitto_security
-                configure_mosquitto_topic
-                configure_mosquitto_client
-            else
-                echo "L'installation du serveur ou du client Mosquitto a échoué."
-            fi
-            ;;
-
         *)
             echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
             ;;
@@ -239,116 +221,89 @@ install_docker() {
     fi
 }
 
-# Fonction pour installer et configurer SRS (Simple Real-time Server)
+# Fonction pour installer et configurer SRS
 install_srs() {
-    echo "Installation de SRS (Simple Real-time Server)..."
-    
     if command -v docker &> /dev/null; then
-        echo "Docker est installé. Installation de SRS via Docker..."
+        echo "Installation de SRS via Docker..."
         
-        # Créer le script de démarrage pour SRS
+        # Créer un script de démarrage pour SRS
+        echo "Création d'un script de démarrage pour SRS..."
         sudo bash -c 'cat > /usr/local/bin/start-srs.sh << EOF
 #!/bin/bash
-docker run --rm -it --name srs -p 1935:1935 -p 1985:1985 -p 8080:8080 ossrs/srs
+docker run --rm -d --name srs -p 1935:1935 -p 1985:1985 -p 8080:8080 ossrs/srs:5
 EOF'
+        
         sudo chmod +x /usr/local/bin/start-srs.sh
+        
+        # Créer un service systemd pour SRS
+        echo "Création d'un service systemd pour SRS..."
+        sudo bash -c 'cat > /etc/systemd/system/srs-docker.service << EOF
+[Unit]
+Description=SRS Docker Container
+Requires=docker.service
+After=docker.service
 
-        echo "Démarrage de SRS..."
-        sudo /usr/local/bin/start-srs.sh
+[Service]
+ExecStart=/usr/local/bin/start-srs.sh
+ExecStop=/usr/bin/docker stop srs
+Restart=always
 
-        # Vérifier que SRS fonctionne
-        if curl -s http://localhost:8080 | grep -q "SRS"; then
-            echo "SRS fonctionne correctement."
-        else
-            echo "SRS ne fonctionne pas correctement."
-        fi
+[Install]
+WantedBy=multi-user.target
+EOF'
+        
+        # Recharger systemd et activer le service SRS
+        echo "Rechargement de systemd et activation du service SRS..."
+        sudo systemctl daemon-reload
+        sudo systemctl enable srs-docker
+        sudo systemctl start srs-docker
+
+        echo "SRS installé et configuré avec Docker."
     else
         echo "Docker n'est pas installé. Veuillez installer Docker d'abord."
     fi
 }
 
-# Fonction pour installer et configurer nginx
-install_nginx() {
-    echo "Installation de nginx..."
-    sudo apt install -y nginx
-    if nginx -v &> /dev/null; then
-        echo "nginx installé avec succès."
-        echo "Activation de nginx au démarrage..."
-        sudo systemctl enable nginx
-        echo "Démarrage de nginx..."
-        sudo systemctl start nginx
-    else
-        echo "L'installation de nginx a échoué."
-    fi
+# Fonction pour vérifier la présence des dépendances essentielles
+check_dependencies() {
+    echo "Vérification des dépendances essentielles..."
+    check_installed "mosquitto"
+    check_installed "curl"
+    check_installed "git"
+    check_installed "docker"
+    check_installed "nginx"
+    check_installed "build-essential"
+    check_installed "unzip"
+    check_installed "automake"
+    check_installed "tclsh"
+    check_installed "cmake"
+    check_installed "pkg-config"
 }
 
-# Affichage du menu
-echo "Sélectionnez l'option souhaitée :"
-echo "1) Vérifier l'installation"
-echo "2) Installer les outils de compilation"
-echo "3) Installer unzip"
-echo "4) Installer automake"
-echo "5) Installer tclsh"
-echo "6) Installer cmake"
-echo "7) Installer pkg-config"
-echo "8) Installer nginx"
-echo "9) Installer Mosquitto (MQTT)"
-echo "10) Installer curl"
-echo "11) Installer git"
-echo "12) Installer Docker"
-echo "13) Installer SRS"
-echo "14) Quitter"
-read -p "Entrez le numéro de votre choix : " choice
+# Fonction principale
+main() {
+    clear
+    echo "Bienvenue dans le script d'installation !"
+    echo "Sélectionnez l'option d'installation :"
+    echo "1) Installer Mosquitto (serveur ou client)"
+    echo "2) Installer Docker et SRS"
+    read -p "Entrez le numéro de votre choix : " choice
 
-case $choice in
-    1)
-        echo "Vérification des installations..."
-        check_installed mosquitto
-        check_installed curl
-        check_installed git
-        check_installed docker
-        ;;
-    2)
-        install_build_essentials
-        ;;
-    3)
-        install_unzip
-        ;;
-    4)
-        install_automake
-        ;;
-    5)
-        install_tclsh
-        ;;
-    6)
-        install_cmake
-        ;;
-    7)
-        install_pkg_config
-        ;;
-    8)
-        install_nginx
-        ;;
-    9)
-        install_mosquitto
-        ;;
-    10)
-        install_curl
-        ;;
-    11)
-        install_git
-        ;;
-    12)
-        install_docker
-        ;;
-    13)
-        install_srs
-        ;;
-    14)
-        echo "Quitter..."
-        exit 0
-        ;;
-    *)
-        echo "Choix invalide. Veuillez relancer le script et sélectionner un numéro valide."
-        ;;
-esac
+    case $choice in
+        1)
+            install_mosquitto
+            ;;
+        2)
+            install_docker
+            install_srs
+            ;;
+        *)
+            echo "Choix invalide. Veuillez sélectionner un numéro valide."
+            ;;
+    esac
+
+    echo "Vérification des installations..."
+    check_dependencies
+}
+
+main

@@ -37,41 +37,150 @@ check_installed() {
     fi
 }
 
-# Fonction pour vérifier et afficher le statut des outils nécessaires
-check_tools_status() {
-    echo "Statut des outils nécessaires :"
-    
-    tools=("unzip" "automake" "tclsh" "cmake" "pkg-config" "nginx" "curl" "git")
-    
-    for tool in "${tools[@]}"; do
-        if command -v $tool &> /dev/null; then
-            echo -e "${GREEN}$tool : INSTALLÉ${NC}"
-        else
-            echo -e "${RED}$tool : NON INSTALLÉ${NC}"
-        fi
-    done
-
-    # Pause pour permettre à l'utilisateur de voir le résultat avant de revenir au menu
-    read -p "Appuyez sur Entrée pour revenir au menu..." </dev/tty
-}
-
 # Fonction pour installer les outils nécessaires
 install_tools() {
     echo "Installation des outils nécessaires..."
-    
-    sudo apt install -y unzip automake tclsh cmake pkg-config nginx curl git
-    
-    # Vérification de l'installation
-    check_tools_status
+    sudo apt update
+
+    # Installer les outils nécessaires
+    for tool in unzip automake tclsh cmake pkg-config nginx curl git; do
+        echo "Installation de $tool..."
+        sudo apt install -y $tool
+        echo -e "$tool : $(check_installed $tool)"
+    done
+    read -p "Appuyez sur [Enter] pour continuer..."
 }
 
 # Fonction pour installer les outils de compilation
 install_build_essentials() {
     echo "Installation des outils de compilation (gcc, make, etc.)..."
-    sudo apt install -y build-essential || echo -e "${RED}Échec de l'installation des outils de compilation.${NC}"
+    sudo apt install -y build-essential
+    read -p "Appuyez sur [Enter] pour continuer..."
+}
 
-    # Pause pour permettre à l'utilisateur de voir le résultat avant de revenir au menu
-    read -p "Appuyez sur Entrée pour revenir au menu..." </dev/tty
+# Fonction pour installer unzip
+install_unzip() {
+    echo "Installation de unzip..."
+    sudo apt install -y unzip
+    read -p "Appuyez sur [Enter] pour continuer..."
+}
+
+# Fonction pour installer automake
+install_automake() {
+    echo "Installation de automake..."
+    sudo apt install -y automake
+    read -p "Appuyez sur [Enter] pour continuer..."
+}
+
+# Fonction pour installer tclsh
+install_tclsh() {
+    echo "Installation de tclsh..."
+    sudo apt install -y tclsh
+    read -p "Appuyez sur [Enter] pour continuer..."
+}
+
+# Fonction pour installer cmake
+install_cmake() {
+    echo "Installation de cmake..."
+    sudo apt install -y cmake
+    read -p "Appuyez sur [Enter] pour continuer..."
+}
+
+# Fonction pour installer pkg-config
+install_pkg_config() {
+    echo "Installation de pkg-config..."
+    sudo apt install -y pkg-config
+    read -p "Appuyez sur [Enter] pour continuer..."
+}
+
+# Fonction pour installer nginx
+install_nginx() {
+    echo "Installation de nginx..."
+    sudo apt install -y nginx
+    if nginx -v &> /dev/null; then
+        echo "nginx installé avec succès."
+        echo "Activation de nginx au démarrage..."
+        sudo systemctl enable nginx
+        echo "Démarrage de nginx..."
+        sudo systemctl start nginx
+    else
+        echo "L'installation de nginx a échoué."
+    fi
+    read -p "Appuyez sur [Enter] pour continuer..."
+}
+
+# Fonction pour configurer le serveur Mosquitto avec utilisateur et mot de passe
+configure_mosquitto_security() {
+    echo "Configuration de la sécurité pour Mosquitto..."
+    sudo bash -c 'cat > /etc/mosquitto/conf.d/default.conf << EOF
+allow_anonymous false
+password_file /etc/mosquitto/passwd
+EOF'
+
+    sudo touch /etc/mosquitto/passwd
+    sudo mosquitto_passwd -b /etc/mosquitto/passwd iptv-serv-mqtt 19041980
+
+    echo "Redémarrage du service Mosquitto pour appliquer les modifications..."
+    sudo systemctl restart mosquitto
+}
+
+# Fonction pour installer Mosquitto (MQTT)
+install_mosquitto() {
+    echo "Que souhaitez-vous installer pour Mosquitto (MQTT) ?"
+    echo "1) Serveur Mosquitto"
+    echo "2) Client Mosquitto"
+    echo "3) Serveur et Client Mosquitto"
+    read -p "Entrez le numéro de votre choix : " mosquitto_choice
+
+    case $mosquitto_choice in
+        1)
+            echo "Installation du serveur Mosquitto..."
+            sudo apt install -y mosquitto
+            if mosquitto -v &> /dev/null; then
+                echo "Serveur Mosquitto installé avec succès."
+                configure_mosquitto_security
+            else
+                echo "L'installation du serveur Mosquitto a échoué."
+            fi
+            ;;
+        2)
+            echo "Installation du client Mosquitto..."
+            sudo apt install -y mosquitto-clients
+            if mosquitto_sub -h &> /dev/null; then
+                echo "Client Mosquitto installé avec succès."
+            else
+                echo "L'installation du client Mosquitto a échoué."
+            fi
+            ;;
+        3)
+            echo "Installation du serveur et client Mosquitto..."
+            sudo apt install -y mosquitto mosquitto-clients
+            if mosquitto -v &> /dev/null && mosquitto_sub -h &> /dev/null; then
+                echo "Serveur et Client Mosquitto installés avec succès."
+                configure_mosquitto_security
+            else
+                echo "L'installation du serveur ou du client Mosquitto a échoué."
+            fi
+            ;;
+        *)
+            echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
+            ;;
+    esac
+    read -p "Appuyez sur [Enter] pour continuer..."
+}
+
+# Fonction pour installer curl
+install_curl() {
+    echo "Installation de curl..."
+    sudo apt install -y curl
+    read -p "Appuyez sur [Enter] pour continuer..."
+}
+
+# Fonction pour installer git
+install_git() {
+    echo "Installation de git..."
+    sudo apt install -y git
+    read -p "Appuyez sur [Enter] pour continuer..."
 }
 
 # Fonction pour installer Docker
@@ -81,7 +190,7 @@ install_docker() {
     # Désinstallation des anciennes versions
     echo "Désinstallation des anciennes versions de Docker..."
     for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
-        sudo apt-get remove -y $pkg
+        sudo apt-get remove $pkg
     done
 
     # Installation des dépendances
@@ -112,8 +221,9 @@ install_docker() {
     if sudo docker run hello-world; then
         echo "Docker a été installé avec succès."
     else
-        echo -e "${RED}L'installation de Docker a échoué.${NC}"
+        echo "L'installation de Docker a échoué."
     fi
+    read -p "Appuyez sur [Enter] pour continuer..."
 }
 
 # Fonction pour installer et configurer SRS
@@ -127,12 +237,12 @@ install_srs() {
 #!/bin/bash
 docker run --rm -d --name srs -p 1935:1935 -p 1985:1985 -p 8080:8080 -v /usr/local/etc/srs:/usr/local/etc/srs ossrs/srs
 EOF'
-
+        
         # Rendre le script exécutable
         sudo chmod +x /usr/local/bin/start-srs.sh
 
-        # Créer le fichier de service systemd
-        echo "Création du service systemd pour SRS..."
+        # Créer un fichier de service systemd pour SRS
+        echo "Création d'un fichier de service systemd pour SRS..."
         sudo bash -c 'cat > /etc/systemd/system/srs.service << EOF
 [Unit]
 Description=SRS Media Server
@@ -164,33 +274,71 @@ EOF'
     else
         echo -e "${RED}Docker doit être installé pour exécuter cette opération.${NC}"
     fi
+    read -p "Appuyez sur [Enter] pour continuer..."
 }
 
-
-# Fonction pour afficher le menu principal
+# Fonction pour afficher le menu
 show_menu() {
     clear
-    echo "Sélectionnez une option :"
-    echo "1) Vérifier le statut des outils nécessaires"
-    echo "2) Installer les outils nécessaires"
-    echo "3) Installer les outils de compilation"
-    echo "4) Installer Docker"
-    echo "5) Installer et configurer SRS"
-    echo "6) Quitter"
+    echo "======================================="
+    echo "               MENU PRINCIPAL          "
+    echo "======================================="
+    echo "1) Installer les outils nécessaires"
+    echo "2) Installer et configurer Mosquitto (MQTT)"
+    echo "3) Installer Docker"
+    echo "4) Installer SRS (Simple Real-time Server)"
+    echo "5) Quitter"
+    echo "======================================="
+    read -p "Choisissez une option [1-5] : " choice
 }
 
-# Boucle principale
+# Boucle principale du script
 while true; do
     show_menu
-    read -p "Entrez votre choix [1-6] : " choice
-
     case $choice in
-        1) check_tools_status ;;
-        2) install_tools ;;
-        3) install_build_essentials ;;
-        4) install_docker ;;
-        5) install_srs ;;
-        6) exit 0 ;;
-        *) echo "Choix invalide. Veuillez entrer un nombre entre 1 et 6." ;;
+        1)
+            clear
+            echo "Que souhaitez-vous faire ?"
+            echo "1) Installer tous les outils nécessaires"
+            echo "2) Vérifier les outils nécessaires"
+            read -p "Entrez le numéro de votre choix : " tool_choice
+
+            case $tool_choice in
+                1)
+                    install_tools
+                    ;;
+                2)
+                    echo "Vérification des outils nécessaires..."
+                    echo -e "1) unzip : $(check_installed unzip)"
+                    echo -e "2) automake : $(check_installed automake)"
+                    echo -e "3) tclsh : $(check_installed tclsh)"
+                    echo -e "4) cmake : $(check_installed cmake)"
+                    echo -e "5) pkg-config : $(check_installed pkg-config)"
+                    echo -e "6) nginx : $(check_installed nginx)"
+                    echo -e "7) curl : $(check_installed curl)"
+                    echo -e "8) git : $(check_installed git)"
+                    read -p "Appuyez sur [Enter] pour continuer..."
+                    ;;
+                *)
+                    echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
+                    ;;
+            esac
+            ;;
+        2)
+            install_mosquitto
+            ;;
+        3)
+            install_docker
+            ;;
+        4)
+            install_srs
+            ;;
+        5)
+            echo "Quitter le script."
+            exit 0
+            ;;
+        *)
+            echo "Option invalide. Veuillez choisir une option entre 1 et 5."
+            ;;
     esac
 done

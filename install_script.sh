@@ -129,7 +129,6 @@ install_mosquitto() {
     echo "Que souhaitez-vous installer pour Mosquitto (MQTT) ?"
     echo "1) Serveur Mosquitto"
     echo "2) Client Mosquitto"
-    echo "3) Serveur et Client Mosquitto"
     read -p "Entrez le numéro de votre choix : " mosquitto_choice
 
     case $mosquitto_choice in

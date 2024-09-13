@@ -7,34 +7,39 @@ NC='\033[0m' # No Color
 
 # Fonction pour vérifier si un programme est installé
 check_installed() {
-    if [ "$1" = "mosquitto" ]; then
-        server_installed=false
-        client_installed=false
-        
-        if command -v mosquitto &> /dev/null; then
-            server_installed=true
-        fi
-        
-        if command -v mosquitto_pub &> /dev/null; then
-            client_installed=true
-        fi
-        
-        if $server_installed && $client_installed; then
-            echo -e "${GREEN}[CLIENT ET SERVEUR INSTALLÉS]${NC}"
-        elif $server_installed; then
-            echo -e "${GREEN}[SERVEUR INSTALLÉ]${NC} ${RED}[CLIENT NON INSTALLÉ]${NC}"
-        elif $client_installed; then
-            echo -e "${GREEN}[CLIENT INSTALLÉ]${NC} ${RED}[SERVEUR NON INSTALLÉ]${NC}"
-        else
-            echo -e "${RED}[NON INSTALLÉ]${NC}"
-        fi
-    else
-        if command -v $1 &> /dev/null; then
-            echo -e "${GREEN}[INSTALLÉ]${NC}"
-        else
-            echo -e "${RED}[NON INSTALLÉ]${NC}"
-        fi
-    fi
+    case "$1" in
+        mosquitto)
+            server_installed=false
+            client_installed=false
+            
+            if command -v mosquitto &> /dev/null; then
+                server_installed=true
+            fi
+            
+            if command -v mosquitto_pub &> /dev/null; then
+                client_installed=true
+            fi
+            
+            echo "Vérification de Mosquitto :"
+            if $server_installed && $client_installed; then
+                echo -e "${GREEN}[CLIENT ET SERVEUR INSTALLÉS]${NC}"
+            elif $server_installed; then
+                echo -e "${GREEN}[SERVEUR INSTALLÉ]${NC} ${RED}[CLIENT NON INSTALLÉ]${NC}"
+            elif $client_installed; then
+                echo -e "${GREEN}[CLIENT INSTALLÉ]${NC} ${RED}[SERVEUR NON INSTALLÉ]${NC}"
+            else
+                echo -e "${RED}[NON INSTALLÉ]${NC}"
+            fi
+            ;;
+        *)
+            echo "Vérification de $1 :"
+            if command -v $1 &> /dev/null; then
+                echo -e "${GREEN}[INSTALLÉ]${NC}"
+            else
+                echo -e "${RED}[NON INSTALLÉ]${NC}"
+            fi
+            ;;
+    esac
 }
 
 # Fonction pour installer les outils de compilation

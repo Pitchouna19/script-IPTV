@@ -148,13 +148,17 @@ install_mosquitto() {
             sudo apt install -y mosquitto-clients
             if mosquitto_sub -h localhost &> /dev/null; then
                 echo "Client Mosquitto installé avec succès."
+                
+                # Demander à l'utilisateur de saisir l'adresse IP du broker
+                read -p "Entrez l'adresse IP du broker Mosquitto : " broker_ip
 
-                # Configurer le client Mosquitto pour utiliser les mêmes identifiants que le serveur
+                # Configurer le client Mosquitto avec l'adresse IP fournie
                 echo "Configuration du client Mosquitto..."
-                sudo bash -c 'cat > /etc/mosquitto/conf.d/client.conf << EOF
+                sudo bash -c "cat > /etc/mosquitto/conf.d/client.conf << EOF
+address $broker_ip
 username iptv-serv-mqtt
 password /etc/mosquitto/passwd
-EOF'
+EOF"
 
             else
                 echo "L'installation du client Mosquitto a échoué."
@@ -166,6 +170,7 @@ EOF'
     esac
     read -p "Appuyez sur [Enter] pour continuer..."
 }
+
 
 # Fonction pour installer curl
 install_curl() {

@@ -278,6 +278,7 @@ check_dependencies() {
     check_installed "tclsh"
     check_installed "cmake"
     check_installed "pkg-config"
+    echo "3) Installer les dépendances"
 }
 
 # Fonction principale
@@ -287,6 +288,7 @@ main() {
     echo "Sélectionnez l'option d'installation :"
     echo "1) Installer Mosquitto (serveur ou client)"
     echo "2) Installer Docker et SRS"
+    echo "3) Installer les dépendances"
     read -p "Entrez le numéro de votre choix : " choice
 
     case $choice in
@@ -297,13 +299,13 @@ main() {
             install_docker
             install_srs
             ;;
+        3)
+            check_dependencies
+            ;;
         *)
             echo "Choix invalide. Veuillez sélectionner un numéro valide."
             ;;
     esac
-
-    echo "Vérification des installations..."
-    check_dependencies
 }
 
 main

@@ -262,47 +262,67 @@ EOF'
     fi
 }
 
-# Fonction pour vérifier la présence des dépendances essentielles
-check_dependencies() {
-    echo "Vérification des dépendances essentielles..."
-    check_installed "mosquitto"
-    check_installed "curl"
-    check_installed "git"
-    check_installed "docker"
-    check_installed "nginx"
-    check_installed "build-essential"
-    check_installed "unzip"
-    check_installed "automake"
-    check_installed "tclsh"
-    check_installed "cmake"
-    check_installed "pkg-config"
+# Fonction pour installer toutes les dépendances
+install_all_dependencies() {
+    install_build_essentials
+    install_unzip
+    install_automake
+    install_tclsh
+    install_cmake
+    install_pkg_config
+    install_nginx
+    install_mosquitto
+    install_docker
+    install_srs
 }
 
-# Fonction principale
-main() {
-    clear
-    echo "Bienvenue dans le script d'installation !"
-    echo "Sélectionnez l'option d'installation :"
-    echo "1) Installer Mosquitto (serveur ou client)"
-    echo "2) Installer Docker et SRS"
-    echo "3) Installer les dépendances"
+# Fonction principale pour afficher le menu et exécuter les actions
+main_menu() {
+    echo "Sélectionnez une option :"
+    echo "1) Vérifier les dépendances"
+    echo "2) Installer les dépendances"
+    echo "3) Installer toutes les dépendances"
+    echo "4) Quitter"
     read -p "Entrez le numéro de votre choix : " choice
 
     case $choice in
         1)
-            install_mosquitto
+            echo "Vérification des dépendances..."
+            check_installed "mosquitto"
+            check_installed "build-essential"
+            check_installed "unzip"
+            check_installed "automake"
+            check_installed "tclsh"
+            check_installed "cmake"
+            check_installed "pkg-config"
+            check_installed "nginx"
             ;;
         2)
+            echo "Installation des dépendances..."
+            install_build_essentials
+            install_unzip
+            install_automake
+            install_tclsh
+            install_cmake
+            install_pkg_config
+            install_nginx
+            install_mosquitto
             install_docker
             install_srs
             ;;
         3)
-            check_dependencies
+            echo "Installation de toutes les dépendances..."
+            install_all_dependencies
+            ;;
+        4)
+            echo "Quitter"
+            exit 0
             ;;
         *)
-            echo "Choix invalide. Veuillez sélectionner un numéro valide."
+            echo "Choix invalide."
             ;;
     esac
 }
 
-main
+# Exécuter le menu principal
+main_menu

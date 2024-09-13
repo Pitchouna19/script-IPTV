@@ -124,6 +124,7 @@ EOF'
     sudo systemctl restart mosquitto
 }
 
+
 # Fonction pour installer Mosquitto (MQTT)
 install_mosquitto() {
     echo "Que souhaitez-vous installer pour Mosquitto (MQTT) ?"
@@ -145,13 +146,20 @@ install_mosquitto() {
         2)
             echo "Installation du client Mosquitto..."
             sudo apt install -y mosquitto-clients
-            if mosquitto_sub -h &> /dev/null; then
+            if mosquitto_sub -h localhost &> /dev/null; then
                 echo "Client Mosquitto installé avec succès."
+
+                # Configurer le client Mosquitto pour utiliser les mêmes identifiants que le serveur
+                echo "Configuration du client Mosquitto..."
+                sudo bash -c 'cat > /etc/mosquitto/conf.d/client.conf << EOF
+username iptv-serv-mqtt
+password /etc/mosquitto/passwd
+EOF'
+
             else
                 echo "L'installation du client Mosquitto a échoué."
             fi
             ;;
-        
         *)
             echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
             ;;

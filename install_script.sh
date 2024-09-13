@@ -149,8 +149,7 @@ EOF'
 
             # Créer et configurer les utilisateurs
             echo "Ajout des utilisateurs..."
-            sudo mosquitto_passwd -b /etc/mosquitto/passwd john_doe EXAMPLE_PASSWORD
-            sudo mosquitto_passwd -b /etc/mosquitto/passwd mary_smith EXAMPLE_PASSWORD_2
+            sudo mosquitto_passwd -b /etc/mosquitto/passwd serv-mp 19041980
 
             # Redémarrer le serveur pour appliquer les changements
             sudo systemctl restart mosquitto

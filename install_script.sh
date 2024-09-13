@@ -108,9 +108,20 @@ EOF'
     sudo systemctl restart mosquitto
 }
 
+# Fonction pour publier un message sur le topic 'serveur/link'
+configure_mosquitto_topic() {
+    echo "Publication d'un message sur le topic 'serveur/link'..."
+    # Publiant un message initial sur le topic 'serveur/link'
+    mosquitto_pub -h localhost -u $(hostname) -P 19041980 -t "serveur/link" -m "Le serveur Mosquitto est en ligne."
+}
+
 # Fonction pour configurer le client Mosquitto
 configure_mosquitto_client() {
     read -p "Entrez l'adresse IP du broker Mosquitto : " broker_ip
+    read -p "Entrez le nom d'utilisateur pour le client Mosquitto : " client_username
+    read -sp "Entrez le mot de passe pour le client Mosquitto : " client_password
+    echo
+
     echo "Configuration du client Mosquitto avec l'adresse IP du broker : $broker_ip"
 
     # Créer un fichier de configuration pour le client
@@ -118,6 +129,8 @@ configure_mosquitto_client() {
 # Configuration du client Mosquitto
 connection mybroker
 address $broker_ip
+username $client_username
+password $client_password
 EOF"
 }
 
@@ -136,6 +149,7 @@ install_mosquitto() {
             if mosquitto -v &> /dev/null; then
                 echo "Serveur Mosquitto installé avec succès."
                 configure_mosquitto_security
+                configure_mosquitto_topic
             else
                 echo "L'installation du serveur Mosquitto a échoué."
             fi
@@ -158,6 +172,7 @@ install_mosquitto() {
             if mosquitto -v &> /dev/null && mosquitto_pub -h &> /dev/null; then
                 echo "Serveur et Client Mosquitto installés avec succès."
                 configure_mosquitto_security
+                configure_mosquitto_topic
                 configure_mosquitto_client
             else
                 echo "L'installation du serveur ou du client Mosquitto a échoué."
@@ -224,16 +239,17 @@ install_docker() {
     fi
 }
 
-# Fonction pour installer et configurer SRS
+# Fonction pour installer et configurer SRS (Simple Real-time Server)
 install_srs() {
+    echo "Installation de SRS (Simple Real-time Server)..."
+    
     if command -v docker &> /dev/null; then
-        echo "Installation de SRS via Docker..."
+        echo "Docker est installé. Installation de SRS via Docker..."
         
-        # Créer un script de démarrage pour SRS
-        echo "Création d'un script de démarrage pour SRS..."
+        # Créer le script de démarrage pour SRS
         sudo bash -c 'cat > /usr/local/bin/start-srs.sh << EOF
 #!/bin/bash
-docker run --rm -d --name srs -p 1935:1935 -p 1985:1985 -p 8080:8080 ossrs/srs:latest
+docker run --rm -it --name srs -p 1935:1935 -p 1985:1985 -p 8080:8080 ossrs/srs
 EOF'
         sudo chmod +x /usr/local/bin/start-srs.sh
 

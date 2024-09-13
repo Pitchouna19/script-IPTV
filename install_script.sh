@@ -155,105 +155,103 @@ address $broker_ip
 username $username
 password $password
 EOF"
+                
+                # Création du script de surveillance
+                sudo bash -c 'cat > /usr/local/bin/monitor.sh << EOF
+#!/bin/bash
 
-                echo "Configuration du client Mosquitto terminée."
+# Configuration
+BROKER_IP="'"$broker_ip"'"
+TOPIC="monitoring/data"
+USERNAME="'"$username"'"
+PASSWORD="'"$password"'"
+
+get_cpu_usage() {
+    mpstat -P ALL 1 1 | awk "/Average:/ && \$3 ~ /[0-9.]/ { print \$3 }"
+}
+
+get_network_usage() {
+    iface=\$(ip -o -4 route show to default | awk "{print \$5}")
+    rx_bytes=\$(cat /sys/class/net/\$iface/statistics/rx_bytes)
+    tx_bytes=\$(cat /sys/class/net/\$iface/statistics/tx_bytes)
+    echo "{\"rx_bytes\": \$rx_bytes, \"tx_bytes\": \$tx_bytes}"
+}
+
+publish_metrics() {
+    while true; do
+        cpu_usage=\$(get_cpu_usage)
+        network_usage=\$(get_network_usage)
+        json_data=\$(printf "{\"cpu_usage\": %s, \"network_usage\": %s}" "\$cpu_usage" "\$network_usage")
+        mosquitto_pub -h "\$BROKER_IP" -t "\$TOPIC" -u "\$USERNAME" -P "\$PASSWORD" -m "\$json_data"
+        sleep 10
+    done
+}
+
+publish_metrics
+EOF'
+
+                sudo chmod +x /usr/local/bin/monitor.sh
+
+                # Création du fichier de service systemd
+                sudo bash -c 'cat > /etc/systemd/system/mqtt-monitor.service << EOF
+[Unit]
+Description=MQTT Monitoring Service
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/monitor.sh
+Restart=always
+User=nobody
+Group=nogroup
+
+[Install]
+WantedBy=multi-user.target
+EOF'
+
+                # Activer et démarrer le service
+                sudo systemctl daemon-reload
+                sudo systemctl enable mqtt-monitor
+                sudo systemctl start mqtt-monitor
+
+                echo "Le client Mosquitto est installé et configuré pour surveiller le CPU et le réseau."
             else
                 echo "L'installation du client Mosquitto a échoué."
             fi
             ;;
         *)
-            echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
+            echo "Choix invalide pour Mosquitto."
             ;;
     esac
 }
 
-# Fonction pour installer curl
-install_curl() {
-    echo "Installation de curl..."
-    sudo apt install -y curl
-}
-
-# Fonction pour installer git
-install_git() {
-    echo "Installation de git..."
-    sudo apt install -y git
-}
-
-# Fonction pour installer Docker
+# Fonction pour installer Docker et SRS
 install_docker() {
     echo "Installation de Docker..."
-    
-    # Désinstallation des anciennes versions
-    echo "Désinstallation des anciennes versions de Docker..."
-    for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
-        sudo apt-get remove $pkg
-    done
-
-    # Installation des dépendances
-    echo "Installation des dépendances..."
-    sudo apt-get update
-    sudo apt-get install -y ca-certificates curl
-
-    # Ajout de la clé GPG officielle de Docker
-    echo "Ajout de la clé GPG officielle de Docker..."
-    sudo install -m 0755 -d /etc/apt/keyrings
-    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-    sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-    # Ajout du dépôt Docker aux sources APT
-    echo "Ajout du dépôt Docker aux sources APT..."
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-    # Mise à jour des paquets et installation de Docker
-    echo "Mise à jour des paquets et installation de Docker..."
-    sudo apt-get update
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-    # Vérification de l'installation
-    echo "Vérification de l'installation de Docker..."
-    if sudo docker run hello-world; then
-        echo "Docker a été installé avec succès."
+    sudo apt install -y docker.io
+    if docker --version &> /dev/null; then
+        echo "Docker installé avec succès."
     else
         echo "L'installation de Docker a échoué."
     fi
 }
 
-# Fonction pour installer et configurer SRS
 install_srs() {
-    if command -v docker &> /dev/null; then
-        echo "Installation de SRS via Docker..."
-        
-        # Créer un script de démarrage pour SRS
-        echo "Création d'un script de démarrage pour SRS..."
-        sudo bash -c 'cat > /usr/local/bin/start-srs.sh << EOF
-#!/bin/bash
-docker run --rm -d --name srs -p 1935:1935 -p 1985:1985 -p 8080:8080 ossrs/srs:5
-EOF'
-        
-        sudo chmod +x /usr/local/bin/start-srs.sh
-        
-        # Créer un service systemd pour SRS
-        echo "Création d'un service systemd pour SRS..."
+    echo "Installation de SRS avec Docker..."
+    if docker --version &> /dev/null; then
+        sudo docker pull ossrs/srs
         sudo bash -c 'cat > /etc/systemd/system/srs-docker.service << EOF
 [Unit]
-Description=SRS Docker Container
-Requires=docker.service
-After=docker.service
+Description=SRS Docker Service
+After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/start-srs.sh
-ExecStop=/usr/bin/docker stop srs
+ExecStart=/usr/bin/docker run --rm -p 1935:1935 -p 1985:1985 ossrs/srs
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 EOF'
-        
-        # Recharger systemd et activer le service SRS
-        echo "Rechargement de systemd et activation du service SRS..."
+
         sudo systemctl daemon-reload
         sudo systemctl enable srs-docker
         sudo systemctl start srs-docker
@@ -278,7 +276,6 @@ check_dependencies() {
     check_installed "tclsh"
     check_installed "cmake"
     check_installed "pkg-config"
-    echo "3) Installer les dépendances"
 }
 
 # Fonction principale

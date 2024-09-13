@@ -37,126 +37,41 @@ check_installed() {
     fi
 }
 
+# Fonction pour vérifier et afficher le statut des outils nécessaires
+check_tools_status() {
+    echo "Statut des outils nécessaires :"
+    
+    tools=("unzip" "automake" "tclsh" "cmake" "pkg-config" "nginx" "curl" "git")
+    
+    for tool in "${tools[@]}"; do
+        if command -v $tool &> /dev/null; then
+            echo -e "${GREEN}$tool : INSTALLÉ${NC}"
+        else
+            echo -e "${RED}$tool : NON INSTALLÉ${NC}"
+        fi
+    done
+
+    # Pause pour permettre à l'utilisateur de voir le résultat avant de revenir au menu
+    read -p "Appuyez sur Entrée pour revenir au menu..." </dev/tty
+}
+
+# Fonction pour installer les outils nécessaires
+install_tools() {
+    echo "Installation des outils nécessaires..."
+    
+    sudo apt install -y unzip automake tclsh cmake pkg-config nginx curl git
+    
+    # Vérification de l'installation
+    check_tools_status
+}
+
 # Fonction pour installer les outils de compilation
 install_build_essentials() {
     echo "Installation des outils de compilation (gcc, make, etc.)..."
-    sudo apt install -y build-essential
-}
+    sudo apt install -y build-essential || echo -e "${RED}Échec de l'installation des outils de compilation.${NC}"
 
-# Fonction pour installer unzip
-install_unzip() {
-    echo "Installation de unzip..."
-    sudo apt install -y unzip
-}
-
-# Fonction pour installer automake
-install_automake() {
-    echo "Installation de automake..."
-    sudo apt install -y automake
-}
-
-# Fonction pour installer tclsh
-install_tclsh() {
-    echo "Installation de tclsh..."
-    sudo apt install -y tclsh
-}
-
-# Fonction pour installer cmake
-install_cmake() {
-    echo "Installation de cmake..."
-    sudo apt install -y cmake
-}
-
-# Fonction pour installer pkg-config
-install_pkg_config() {
-    echo "Installation de pkg-config..."
-    sudo apt install -y pkg-config
-}
-
-# Fonction pour installer nginx
-install_nginx() {
-    echo "Installation de nginx..."
-    sudo apt install -y nginx
-    if nginx -v &> /dev/null; then
-        echo "nginx installé avec succès."
-        echo "Activation de nginx au démarrage..."
-        sudo systemctl enable nginx
-        echo "Démarrage de nginx..."
-        sudo systemctl start nginx
-    else
-        echo "L'installation de nginx a échoué."
-    fi
-}
-
-# Fonction pour configurer le serveur Mosquitto avec utilisateur et mot de passe
-configure_mosquitto_security() {
-    echo "Configuration de la sécurité pour Mosquitto..."
-    sudo bash -c 'cat > /etc/mosquitto/conf.d/default.conf << EOF
-allow_anonymous false
-password_file /etc/mosquitto/passwd
-EOF'
-
-    sudo touch /etc/mosquitto/passwd
-    sudo mosquitto_passwd -b /etc/mosquitto/passwd iptv-serv-mqtt 19041980
-
-    echo "Redémarrage du service Mosquitto pour appliquer les modifications..."
-    sudo systemctl restart mosquitto
-}
-
-# Fonction pour installer Mosquitto (MQTT)
-install_mosquitto() {
-    echo "Que souhaitez-vous installer pour Mosquitto (MQTT) ?"
-    echo "1) Serveur Mosquitto"
-    echo "2) Client Mosquitto"
-    echo "3) Serveur et Client Mosquitto"
-    read -p "Entrez le numéro de votre choix : " mosquitto_choice
-
-    case $mosquitto_choice in
-        1)
-            echo "Installation du serveur Mosquitto..."
-            sudo apt install -y mosquitto
-            if mosquitto -v &> /dev/null; then
-                echo "Serveur Mosquitto installé avec succès."
-                configure_mosquitto_security
-            else
-                echo "L'installation du serveur Mosquitto a échoué."
-            fi
-            ;;
-        2)
-            echo "Installation du client Mosquitto..."
-            sudo apt install -y mosquitto-clients
-            if mosquitto_sub -h &> /dev/null; then
-                echo "Client Mosquitto installé avec succès."
-            else
-                echo "L'installation du client Mosquitto a échoué."
-            fi
-            ;;
-        3)
-            echo "Installation du serveur et client Mosquitto..."
-            sudo apt install -y mosquitto mosquitto-clients
-            if mosquitto -v &> /dev/null && mosquitto_sub -h &> /dev/null; then
-                echo "Serveur et Client Mosquitto installés avec succès."
-                configure_mosquitto_security
-            else
-                echo "L'installation du serveur ou du client Mosquitto a échoué."
-            fi
-            ;;
-        *)
-            echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
-            ;;
-    esac
-}
-
-# Fonction pour installer curl
-install_curl() {
-    echo "Installation de curl..."
-    sudo apt install -y curl
-}
-
-# Fonction pour installer git
-install_git() {
-    echo "Installation de git..."
-    sudo apt install -y git
+    # Pause pour permettre à l'utilisateur de voir le résultat avant de revenir au menu
+    read -p "Appuyez sur Entrée pour revenir au menu..." </dev/tty
 }
 
 # Fonction pour installer Docker
@@ -166,7 +81,7 @@ install_docker() {
     # Désinstallation des anciennes versions
     echo "Désinstallation des anciennes versions de Docker..."
     for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
-        sudo apt-get remove $pkg
+        sudo apt-get remove -y $pkg
     done
 
     # Installation des dépendances
@@ -197,7 +112,7 @@ install_docker() {
     if sudo docker run hello-world; then
         echo "Docker a été installé avec succès."
     else
-        echo "L'installation de Docker a échoué."
+        echo -e "${RED}L'installation de Docker a échoué.${NC}"
     fi
 }
 
@@ -210,73 +125,72 @@ install_srs() {
         echo "Création d'un script de démarrage pour SRS..."
         sudo bash -c 'cat > /usr/local/bin/start-srs.sh << EOF
 #!/bin/bash
-docker run --rm -d --name srs -p 1935:1935 -p 1985:1985 -p 8080:8080 ossrs/srs:5
+docker run --rm -d --name srs -p 1935:1935 -p 1985:1985 -p 8080:8080 -v /usr/local/etc/srs:/usr/local/etc/srs ossrs/srs
 EOF'
-        
+
+        # Rendre le script exécutable
         sudo chmod +x /usr/local/bin/start-srs.sh
-        
-        # Créer un service systemd pour SRS
-        echo "Création d'un service systemd pour SRS..."
-        sudo bash -c 'cat > /etc/systemd/system/srs-docker.service << EOF
+
+        # Créer le fichier de service systemd
+        echo "Création du service systemd pour SRS..."
+        sudo bash -c 'cat > /etc/systemd/system/srs.service << EOF
 [Unit]
-Description=SRS Docker Container
-Requires=docker.service
-After=docker.service
+Description=SRS Media Server
+After=network.target
 
 [Service]
+Type=simple
 ExecStart=/usr/local/bin/start-srs.sh
-ExecStop=/usr/bin/docker stop srs
 Restart=always
+User=root
 
 [Install]
 WantedBy=multi-user.target
 EOF'
-        
-        # Recharger systemd, activer et démarrer le service SRS
+
+        # Recharger les configurations de systemd
+        echo "Rechargement des configurations de systemd..."
         sudo systemctl daemon-reload
-        sudo systemctl enable srs-docker.service
-        sudo systemctl start srs-docker.service
-        
-        echo "SRS a été installé et configuré pour démarrer automatiquement."
+
+        # Démarrer le service SRS
+        echo "Démarrage du service SRS..."
+        sudo systemctl start srs
+
+        # Activer le service pour qu'il démarre au démarrage
+        echo "Activation du service SRS pour démarrer au démarrage..."
+        sudo systemctl enable srs
+
+        echo "SRS est maintenant en cours d'exécution et sera démarré automatiquement au prochain redémarrage."
     else
-        echo "Docker n'est pas installé. Veuillez d'abord installer Docker."
+        echo -e "${RED}Docker doit être installé pour exécuter cette opération.${NC}"
     fi
 }
 
-# Liste des options avec indication d'installation
-echo "Choisissez ce que vous souhaitez installer :"
-echo -n "1) Installer nginx "; check_installed nginx
-echo -n "2) Installer Mosquitto (MQTT) "; check_installed mosquitto
-echo -n "3) Installer curl "; check_installed curl
-echo -n "4) Installer git "; check_installed git
-echo -n "5) Installer Docker "; check_installed docker
-echo -n "6) Installer SRS via Docker "
-if docker ps | grep -q srs; then
-    echo -e "${GREEN}[INSTALLÉ]${NC}"
-else
-    echo -e "${RED}[NON INSTALLÉ]${NC}"
-fi
-echo -n "7) Installer build-essential "; check_installed gcc
-echo -n "8) Installer cmake "; check_installed cmake
-echo -n "9) Installer pkg-config "; check_installed pkg-config
-echo -n "10) Installer unzip "; check_installed unzip
-echo -n "11) Installer automake "; check_installed automake
-echo -n "12) Installer tclsh "; check_installed tclsh
 
-read -p "Entrez le numéro de votre choix : " choice
+# Fonction pour afficher le menu principal
+show_menu() {
+    clear
+    echo "Sélectionnez une option :"
+    echo "1) Vérifier le statut des outils nécessaires"
+    echo "2) Installer les outils nécessaires"
+    echo "3) Installer les outils de compilation"
+    echo "4) Installer Docker"
+    echo "5) Installer et configurer SRS"
+    echo "6) Quitter"
+}
 
-case $choice in
-    1) install_nginx ;;
-    2) install_mosquitto ;;
-    3) install_curl ;;
-    4) install_git ;;
-    5) install_docker ;;
-    6) install_srs ;;
-    7) install_build_essentials ;;
-    8) install_cmake ;;
-    9) install_pkg_config ;;
-    10) install_unzip ;;
-    11) install_automake ;;
-    12) install_tclsh ;;
-    *) echo "Choix invalide." ;;
-esac
+# Boucle principale
+while true; do
+    show_menu
+    read -p "Entrez votre choix [1-6] : " choice
+
+    case $choice in
+        1) check_tools_status ;;
+        2) install_tools ;;
+        3) install_build_essentials ;;
+        4) install_docker ;;
+        5) install_srs ;;
+        6) exit 0 ;;
+        *) echo "Choix invalide. Veuillez entrer un nombre entre 1 et 6." ;;
+    esac
+done

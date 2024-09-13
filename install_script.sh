@@ -109,21 +109,34 @@ install_nginx() {
     read -p "Appuyez sur [Enter] pour continuer..."
 }
 
-# Fonction pour configurer le serveur Mosquitto avec utilisateur et mot de passe
+# Fonction pour configurer la sécurité de Mosquitto
 configure_mosquitto_security() {
-    echo "Configuration de la sécurité pour Mosquitto..."
+    echo "Configuration de la sécurité de Mosquitto..."
+
+    # Créer le fichier de mot de passe s'il n'existe pas
+    if [ ! -f /etc/mosquitto/passwd ]; then
+        sudo mkdir -p /etc/mosquitto
+        sudo touch /etc/mosquitto/passwd
+        sudo chmod 600 /etc/mosquitto/passwd
+    fi
+
+    # Ajouter un utilisateur avec un mot de passe
+    read -p "Entrez le nom d'utilisateur pour Mosquitto : " mqtt_user
+    read -sp "Entrez le mot de passe pour l'utilisateur $mqtt_user : " mqtt_pass
+    echo
+    sudo mosquitto_passwd -b /etc/mosquitto/passwd "$mqtt_user" "$mqtt_pass"
+
+    # Créer ou modifier la configuration de Mosquitto pour utiliser le fichier de mot de passe
     sudo bash -c 'cat > /etc/mosquitto/conf.d/default.conf << EOF
 allow_anonymous false
 password_file /etc/mosquitto/passwd
 EOF'
 
-    sudo touch /etc/mosquitto/passwd
-    sudo mosquitto_passwd -b /etc/mosquitto/passwd iptv-serv-mqtt 19041980
-
-    echo "Redémarrage du service Mosquitto pour appliquer les modifications..."
+    # Redémarrer le service Mosquitto pour appliquer les changements
     sudo systemctl restart mosquitto
-}
 
+    echo "Sécurité de Mosquitto configurée avec succès."
+}
 
 # Fonction pour installer Mosquitto (MQTT)
 install_mosquitto() {
@@ -135,54 +148,32 @@ install_mosquitto() {
     case $mosquitto_choice in
         1)
             echo "Installation du serveur Mosquitto..."
-            sudo apt update
-            sudo apt install -y mosquitto || {
-                echo "L'installation du serveur Mosquitto a échoué. Vérifiez les logs pour plus de détails."
-                exit 1
-            }
-            
-            echo "Configuration de la sécurité du serveur Mosquitto..."
-            sudo bash -c 'cat > /etc/mosquitto/conf.d/default.conf << EOF
-allow_anonymous false
-password_file /etc/mosquitto/passwd
-EOF'
-
-            # Créer et configurer les utilisateurs
-            echo "Ajout des utilisateurs..."
-            sudo mosquitto_passwd -b /etc/mosquitto/passwd serv-mp 19041980
-
-            # Redémarrer le serveur pour appliquer les changements
-            sudo systemctl restart mosquitto
-            echo "Serveur Mosquitto installé et configuré avec succès."
+            sudo apt install -y mosquitto
+            if mosquitto -v &> /dev/null; then
+                echo "Serveur Mosquitto installé avec succès."
+                configure_mosquitto_security
+            else
+                echo "L'installation du serveur Mosquitto a échoué."
+            fi
             ;;
         2)
             echo "Installation du client Mosquitto..."
-            sudo apt install -y mosquitto-clients || {
-                echo "L'installation du client Mosquitto a échoué. Vérifiez les logs pour plus de détails."
-                exit 1
-            }
-            
-            # Demander à l'utilisateur de saisir l'adresse IP du broker
-            read -p "Entrez l'adresse IP du broker Mosquitto : " broker_ip
+            sudo apt install -y mosquitto-clients
+            if mosquitto_sub -h localhost &> /dev/null; then
+                echo "Client Mosquitto installé avec succès."
 
-            # Assurer que le répertoire existe
-            sudo mkdir -p /etc/mosquitto/conf.d/
-
-            # Configurer le client Mosquitto avec l'adresse IP fournie
-            echo "Configuration du client Mosquitto..."
-            sudo bash -c "cat > /etc/mosquitto/conf.d/client.conf << EOF
+                # Demander l'IP du broker pour configurer le client
+                read -p "Entrez l'adresse IP du broker Mosquitto : " broker_ip
+                sudo bash -c "cat > /etc/mosquitto/conf.d/client.conf << EOF
+connection local
 address $broker_ip
-username john_doe
+username $mqtt_user
 password /etc/mosquitto/passwd
 EOF"
 
-            # Vérifier si le fichier a été créé correctement
-            echo "Contenu du fichier de configuration client Mosquitto :"
-            sudo cat /etc/mosquitto/conf.d/client.conf
-
-            # Tester la connexion du client Mosquitto
-            echo "Test de la connexion du client Mosquitto..."
-            mosquitto_sub -h $broker_ip -u john_doe -P EXAMPLE_PASSWORD -t test/topic -v &> /dev/null && echo "Client Mosquitto configuré avec succès." || echo "Erreur de connexion avec le client Mosquitto."
+            else
+                echo "L'installation du client Mosquitto a échoué."
+            fi
             ;;
         *)
             echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."

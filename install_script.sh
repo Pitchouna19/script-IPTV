@@ -7,39 +7,34 @@ NC='\033[0m' # No Color
 
 # Fonction pour vérifier si un programme est installé
 check_installed() {
-    case "$1" in
-        mosquitto)
-            server_installed=false
-            client_installed=false
-            
-            if command -v mosquitto &> /dev/null; then
-                server_installed=true
-            fi
-            
-            if command -v mosquitto_pub &> /dev/null; then
-                client_installed=true
-            fi
-            
-            echo "Vérification de Mosquitto :"
-            if $server_installed && $client_installed; then
-                echo -e "${GREEN}[CLIENT ET SERVEUR INSTALLÉS]${NC}"
-            elif $server_installed; then
-                echo -e "${GREEN}[SERVEUR INSTALLÉ]${NC} ${RED}[CLIENT NON INSTALLÉ]${NC}"
-            elif $client_installed; then
-                echo -e "${GREEN}[CLIENT INSTALLÉ]${NC} ${RED}[SERVEUR NON INSTALLÉ]${NC}"
-            else
-                echo -e "${RED}[NON INSTALLÉ]${NC}"
-            fi
-            ;;
-        *)
-            echo "Vérification de $1 :"
-            if command -v $1 &> /dev/null; then
-                echo -e "${GREEN}[INSTALLÉ]${NC}"
-            else
-                echo -e "${RED}[NON INSTALLÉ]${NC}"
-            fi
-            ;;
-    esac
+    if [ "$1" = "mosquitto" ]; then
+        server_installed=false
+        client_installed=false
+        
+        if command -v mosquitto &> /dev/null; then
+            server_installed=true
+        fi
+        
+        if command -v mosquitto_pub &> /dev/null; then
+            client_installed=true
+        fi
+        
+        if $server_installed && $client_installed; then
+            echo -e "${GREEN}[CLIENT ET SERVEUR INSTALLÉS]${NC}"
+        elif $server_installed; then
+            echo -e "${GREEN}[SERVEUR INSTALLÉ]${NC} ${RED}[CLIENT NON INSTALLÉ]${NC}"
+        elif $client_installed; then
+            echo -e "${GREEN}[CLIENT INSTALLÉ]${NC} ${RED}[SERVEUR NON INSTALLÉ]${NC}"
+        else
+            echo -e "${RED}[NON INSTALLÉ]${NC}"
+        fi
+    else
+        if command -v $1 &> /dev/null; then
+            echo -e "${GREEN}[INSTALLÉ]${NC}"
+        else
+            echo -e "${RED}[NON INSTALLÉ]${NC}"
+        fi
+    fi
 }
 
 # Fonction pour installer les outils de compilation
@@ -95,9 +90,6 @@ install_nginx() {
 
 # Fonction pour configurer le serveur Mosquitto avec utilisateur et mot de passe
 configure_mosquitto_security() {
-    # Récupérer le nom de l'ordinateur
-    local hostname=$(hostname)
-    
     echo "Configuration de la sécurité pour Mosquitto..."
     sudo bash -c 'cat > /etc/mosquitto/conf.d/default.conf << EOF
 allow_anonymous false
@@ -105,18 +97,10 @@ password_file /etc/mosquitto/passwd
 EOF'
 
     sudo touch /etc/mosquitto/passwd
-    
-    # Utiliser le nom de l'ordinateur dans la commande mosquitto_passwd
-    sudo mosquitto_passwd -b /etc/mosquitto/passwd $hostname 19041980
+    sudo mosquitto_passwd -b /etc/mosquitto/passwd iptv-serv-mqtt 19041980
 
     echo "Redémarrage du service Mosquitto pour appliquer les modifications..."
     sudo systemctl restart mosquitto
-}
-
-# Fonction pour configurer un topic spécifique
-configure_mosquitto_topic() {
-    echo "Configuration du topic 'serveur/link'..."
-    mosquitto_pub -t "serveur/link" -m "Configuration du topic 'serveur/link'"
 }
 
 # Fonction pour installer Mosquitto (MQTT)
@@ -124,6 +108,7 @@ install_mosquitto() {
     echo "Que souhaitez-vous installer pour Mosquitto (MQTT) ?"
     echo "1) Serveur Mosquitto"
     echo "2) Client Mosquitto"
+    echo "3) Serveur et Client Mosquitto"
     read -p "Entrez le numéro de votre choix : " mosquitto_choice
 
     case $mosquitto_choice in
@@ -133,7 +118,6 @@ install_mosquitto() {
             if mosquitto -v &> /dev/null; then
                 echo "Serveur Mosquitto installé avec succès."
                 configure_mosquitto_security
-                configure_mosquitto_topic
             else
                 echo "L'installation du serveur Mosquitto a échoué."
             fi
@@ -143,191 +127,156 @@ install_mosquitto() {
             sudo apt install -y mosquitto-clients
             if mosquitto_sub -h &> /dev/null; then
                 echo "Client Mosquitto installé avec succès."
-                read -p "Entrez l'adresse IP du broker : " broker_ip
-                read -p "Entrez le nom d'utilisateur : " username
-                read -sp "Entrez le mot de passe : " password
-                echo
-
-                # Création de la configuration pour le client
-                echo "Adresse IP du broker : $broker_ip"
-                echo "Nom d'utilisateur : $username"
-                echo "Mot de passe : $password"
-
-                echo "Configuration du client Mosquitto..."
-                sudo bash -c "cat > /etc/mosquitto/mosquitto.conf << EOF
-connection mybroker
-address $broker_ip
-username $username
-password $password
-EOF"
-                
-                # Création du script de surveillance
-                sudo bash -c 'cat > /usr/local/bin/monitor.sh << EOF
-#!/bin/bash
-
-# Configuration
-BROKER_IP="'"$broker_ip"'"
-TOPIC="monitoring/data"
-USERNAME="'"$username"'"
-PASSWORD="'"$password"'"
-
-get_cpu_usage() {
-    mpstat -P ALL 1 1 | awk "/Average:/ && \$3 ~ /[0-9.]/ { print \$3 }"
-}
-
-get_network_usage() {
-    iface=\$(ip -o -4 route show to default | awk "{print \$5}")
-    rx_bytes=\$(cat /sys/class/net/\$iface/statistics/rx_bytes)
-    tx_bytes=\$(cat /sys/class/net/\$iface/statistics/tx_bytes)
-    echo "{\"rx_bytes\": \$rx_bytes, \"tx_bytes\": \$tx_bytes}"
-}
-
-publish_metrics() {
-    while true; do
-        cpu_usage=\$(get_cpu_usage)
-        network_usage=\$(get_network_usage)
-        json_data=\$(printf "{\"cpu_usage\": %s, \"network_usage\": %s}" "\$cpu_usage" "\$network_usage")
-        mosquitto_pub -h "\$BROKER_IP" -t "\$TOPIC" -u "\$USERNAME" -P "\$PASSWORD" -m "\$json_data"
-        sleep 10
-    done
-}
-
-publish_metrics
-EOF'
-
-                sudo chmod +x /usr/local/bin/monitor.sh
-
-                # Création du fichier de service systemd
-                sudo bash -c 'cat > /etc/systemd/system/mqtt-monitor.service << EOF
-[Unit]
-Description=MQTT Monitoring Service
-After=network.target
-
-[Service]
-ExecStart=/usr/local/bin/monitor.sh
-Restart=always
-User=nobody
-Group=nogroup
-
-[Install]
-WantedBy=multi-user.target
-EOF'
-
-                # Activer et démarrer le service
-                sudo systemctl daemon-reload
-                sudo systemctl enable mqtt-monitor
-                sudo systemctl start mqtt-monitor
-
-                echo "Le client Mosquitto est installé et configuré pour surveiller le CPU et le réseau."
             else
                 echo "L'installation du client Mosquitto a échoué."
             fi
             ;;
+        3)
+            echo "Installation du serveur et client Mosquitto..."
+            sudo apt install -y mosquitto mosquitto-clients
+            if mosquitto -v &> /dev/null && mosquitto_sub -h &> /dev/null; then
+                echo "Serveur et Client Mosquitto installés avec succès."
+                configure_mosquitto_security
+            else
+                echo "L'installation du serveur ou du client Mosquitto a échoué."
+            fi
+            ;;
         *)
-            echo "Choix invalide pour Mosquitto."
+            echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
             ;;
     esac
 }
 
-# Fonction pour installer Docker et SRS
+# Fonction pour installer curl
+install_curl() {
+    echo "Installation de curl..."
+    sudo apt install -y curl
+}
+
+# Fonction pour installer git
+install_git() {
+    echo "Installation de git..."
+    sudo apt install -y git
+}
+
+# Fonction pour installer Docker
 install_docker() {
     echo "Installation de Docker..."
-    sudo apt install -y docker.io
-    if docker --version &> /dev/null; then
-        echo "Docker installé avec succès."
+    
+    # Désinstallation des anciennes versions
+    echo "Désinstallation des anciennes versions de Docker..."
+    for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
+        sudo apt-get remove $pkg
+    done
+
+    # Installation des dépendances
+    echo "Installation des dépendances..."
+    sudo apt-get update
+    sudo apt-get install -y ca-certificates curl
+
+    # Ajout de la clé GPG officielle de Docker
+    echo "Ajout de la clé GPG officielle de Docker..."
+    sudo install -m 0755 -d /etc/apt/keyrings
+    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+    sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+    # Ajout du dépôt Docker aux sources APT
+    echo "Ajout du dépôt Docker aux sources APT..."
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    # Mise à jour des paquets et installation de Docker
+    echo "Mise à jour des paquets et installation de Docker..."
+    sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    # Vérification de l'installation
+    echo "Vérification de l'installation de Docker..."
+    if sudo docker run hello-world; then
+        echo "Docker a été installé avec succès."
     else
         echo "L'installation de Docker a échoué."
     fi
 }
 
+# Fonction pour installer et configurer SRS
 install_srs() {
-    echo "Installation de SRS avec Docker..."
-    if docker --version &> /dev/null; then
-        sudo docker pull ossrs/srs
+    if command -v docker &> /dev/null; then
+        echo "Installation de SRS via Docker..."
+        
+        # Créer un script de démarrage pour SRS
+        echo "Création d'un script de démarrage pour SRS..."
+        sudo bash -c 'cat > /usr/local/bin/start-srs.sh << EOF
+#!/bin/bash
+docker run --rm -d --name srs -p 1935:1935 -p 1985:1985 -p 8080:8080 ossrs/srs:5
+EOF'
+        
+        sudo chmod +x /usr/local/bin/start-srs.sh
+        
+        # Créer un service systemd pour SRS
+        echo "Création d'un service systemd pour SRS..."
         sudo bash -c 'cat > /etc/systemd/system/srs-docker.service << EOF
 [Unit]
-Description=SRS Docker Service
-After=network.target
+Description=SRS Docker Container
+Requires=docker.service
+After=docker.service
 
 [Service]
-ExecStart=/usr/bin/docker run --rm -p 1935:1935 -p 1985:1985 ossrs/srs
+ExecStart=/usr/local/bin/start-srs.sh
+ExecStop=/usr/bin/docker stop srs
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 EOF'
-
+        
+        # Recharger systemd, activer et démarrer le service SRS
         sudo systemctl daemon-reload
-        sudo systemctl enable srs-docker
-        sudo systemctl start srs-docker
-
-        echo "SRS installé et configuré avec Docker."
+        sudo systemctl enable srs-docker.service
+        sudo systemctl start srs-docker.service
+        
+        echo "SRS a été installé et configuré pour démarrer automatiquement."
     else
-        echo "Docker n'est pas installé. Veuillez installer Docker d'abord."
+        echo "Docker n'est pas installé. Veuillez d'abord installer Docker."
     fi
 }
 
-# Fonction pour installer toutes les dépendances
-install_all_dependencies() {
-    install_build_essentials
-    install_unzip
-    install_automake
-    install_tclsh
-    install_cmake
-    install_pkg_config
-    install_nginx
-    install_mosquitto
-    install_docker
-    install_srs
-}
+# Liste des options avec indication d'installation
+echo "Choisissez ce que vous souhaitez installer :"
+echo -n "1) Installer nginx "; check_installed nginx
+echo -n "2) Installer Mosquitto (MQTT) "; check_installed mosquitto
+echo -n "3) Installer curl "; check_installed curl
+echo -n "4) Installer git "; check_installed git
+echo -n "5) Installer Docker "; check_installed docker
+echo -n "6) Installer SRS via Docker "
+if docker ps | grep -q srs; then
+    echo -e "${GREEN}[INSTALLÉ]${NC}"
+else
+    echo -e "${RED}[NON INSTALLÉ]${NC}"
+fi
+echo -n "7) Installer build-essential "; check_installed gcc
+echo -n "8) Installer cmake "; check_installed cmake
+echo -n "9) Installer pkg-config "; check_installed pkg-config
+echo -n "10) Installer unzip "; check_installed unzip
+echo -n "11) Installer automake "; check_installed automake
+echo -n "12) Installer tclsh "; check_installed tclsh
 
-# Fonction principale pour afficher le menu et exécuter les actions
-main_menu() {
-    echo "Sélectionnez une option :"
-    echo "1) Vérifier les dépendances"
-    echo "2) Installer les dépendances"
-    echo "3) Installer toutes les dépendances"
-    echo "4) Quitter"
-    read -p "Entrez le numéro de votre choix : " choice
+read -p "Entrez le numéro de votre choix : " choice
 
-    case $choice in
-        1)
-            echo "Vérification des dépendances..."
-            check_installed "mosquitto"
-            check_installed "build-essential"
-            check_installed "unzip"
-            check_installed "automake"
-            check_installed "tclsh"
-            check_installed "cmake"
-            check_installed "pkg-config"
-            check_installed "nginx"
-            ;;
-        2)
-            echo "Installation des dépendances..."
-            install_build_essentials
-            install_unzip
-            install_automake
-            install_tclsh
-            install_cmake
-            install_pkg_config
-            install_nginx
-            install_mosquitto
-            install_docker
-            install_srs
-            ;;
-        3)
-            echo "Installation de toutes les dépendances..."
-            install_all_dependencies
-            ;;
-        4)
-            echo "Quitter"
-            exit 0
-            ;;
-        *)
-            echo "Choix invalide."
-            ;;
-    esac
-}
-
-# Exécuter le menu principal
-main_menu
+case $choice in
+    1) install_nginx ;;
+    2) install_mosquitto ;;
+    3) install_curl ;;
+    4) install_git ;;
+    5) install_docker ;;
+    6) install_srs ;;
+    7) install_build_essentials ;;
+    8) install_cmake ;;
+    9) install_pkg_config ;;
+    10) install_unzip ;;
+    11) install_automake ;;
+    12) install_tclsh ;;
+    *) echo "Choix invalide." ;;
+esac

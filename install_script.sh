@@ -126,11 +126,23 @@ configure_mosquitto_security() {
     echo
     sudo mosquitto_passwd -b /etc/mosquitto/passwd "$mqtt_user" "$mqtt_pass"
 
+    # Vérifiez si le mot de passe a été ajouté correctement
+    if [ $? -ne 0 ]; then
+        echo "Erreur lors de l'ajout du mot de passe."
+        return 1
+    fi
+
     # Créer ou modifier la configuration de Mosquitto pour utiliser le fichier de mot de passe
     sudo bash -c 'cat > /etc/mosquitto/conf.d/default.conf << EOF
 allow_anonymous false
 password_file /etc/mosquitto/passwd
 EOF'
+
+    # Vérifiez si le fichier de configuration a été créé correctement
+    if [ $? -ne 0 ]; then
+        echo "Erreur lors de la création du fichier de configuration."
+        return 1
+    fi
 
     # Redémarrer le service Mosquitto pour appliquer les changements
     sudo systemctl restart mosquitto
@@ -156,6 +168,7 @@ install_mosquitto() {
                 echo "L'installation du serveur Mosquitto a échoué."
             fi
             ;;
+
         2)
             echo "Installation du client Mosquitto..."
             sudo apt install -y mosquitto-clients
@@ -175,12 +188,14 @@ EOF"
                 echo "L'installation du client Mosquitto a échoué."
             fi
             ;;
+
         *)
             echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
             ;;
     esac
     read -p "Appuyez sur [Enter] pour continuer..."
 }
+
 
 
 # Fonction pour installer curl

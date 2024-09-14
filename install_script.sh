@@ -109,46 +109,6 @@ install_nginx() {
     read -p "Appuyez sur [Enter] pour continuer..."
 }
 
-# Fonction pour configurer la sécurité de Mosquitto
-configure_mosquitto_security() {
-    echo "Configuration de la sécurité de Mosquitto..."
-
-    # Créer le fichier de mot de passe s'il n'existe pas
-    if [ ! -f /etc/mosquitto/passwd ]; then
-        sudo mkdir -p /etc/mosquitto
-        sudo touch /etc/mosquitto/passwd
-        sudo chmod 600 /etc/mosquitto/passwd
-    fi
-
-    # Ajouter un utilisateur avec un mot de passe
-    read -p "Entrez le nom d'utilisateur pour Mosquitto : " mqtt_user
-    read -sp "Entrez le mot de passe pour l'utilisateur $mqtt_user : " mqtt_pass
-    echo
-    sudo mosquitto_passwd -b /etc/mosquitto/passwd "$mqtt_user" "$mqtt_pass"
-
-    # Vérifiez si le mot de passe a été ajouté correctement
-    if [ $? -ne 0 ]; then
-        echo "Erreur lors de l'ajout du mot de passe."
-        return 1
-    fi
-
-    # Créer ou modifier la configuration de Mosquitto pour utiliser le fichier de mot de passe
-    sudo bash -c 'cat > /etc/mosquitto/conf.d/default.conf << EOF
-allow_anonymous false
-password_file /etc/mosquitto/passwd
-EOF'
-
-    # Vérifiez si le fichier de configuration a été créé correctement
-    if [ $? -ne 0 ]; then
-        echo "Erreur lors de la création du fichier de configuration."
-        return 1
-    fi
-
-    # Redémarrer le service Mosquitto pour appliquer les changements
-    sudo systemctl restart mosquitto
-
-    echo "Sécurité de Mosquitto configurée avec succès."
-}
 
 # Fonction pour installer Mosquitto (MQTT)
 install_mosquitto() {
@@ -160,18 +120,43 @@ install_mosquitto() {
     case $mosquitto_choice in
         1)
             echo "Installation du serveur Mosquitto..."
+            # Installation du serveur Mosquitto
             sudo apt install -y mosquitto
-            if mosquitto -v &> /dev/null; then
-                echo "Serveur Mosquitto installé avec succès."
-                configure_mosquitto_security
+
+            # Démarrage du service Mosquitto
+            sudo systemctl start mosquitto
+
+            # Activation de Mosquitto au démarrage
+            sudo systemctl enable mosquitto
+
+            # Vérification si le service est actif
+            if [ "$(sudo systemctl is-active mosquitto)" = "active" ]; then
+                echo "Serveur Mosquitto installé et actif."
+
+                # Configuration de la sécurité
+                read -p "Entrez le nom d'utilisateur pour Mosquitto : " mqtt_user
+                sudo mosquitto_passwd -c /etc/mosquitto/passwordfile "$mqtt_user"
+
+                # Modification du fichier de configuration Mosquitto
+                sudo bash -c 'echo "
+allow_anonymous false
+password_file /etc/mosquitto/passwordfile
+" >> /etc/mosquitto/mosquitto.conf'
+
+                # Redémarrage du service Mosquitto pour appliquer les changements
+                sudo systemctl restart mosquitto
+
+                echo "Configuration de la sécurité terminée."
             else
-                echo "L'installation du serveur Mosquitto a échoué."
+                echo "Erreur : Mosquitto n'est pas actif."
             fi
             ;;
 
         2)
             echo "Installation du client Mosquitto..."
             sudo apt install -y mosquitto-clients
+
+            # Vérification de l'installation du client
             if mosquitto_sub -h localhost &> /dev/null; then
                 echo "Client Mosquitto installé avec succès."
 
@@ -181,7 +166,7 @@ install_mosquitto() {
 connection local
 address $broker_ip
 username $mqtt_user
-password /etc/mosquitto/passwd
+password /etc/mosquitto/passwordfile
 EOF"
 
             else
@@ -195,6 +180,7 @@ EOF"
     esac
     read -p "Appuyez sur [Enter] pour continuer..."
 }
+
 
 
 

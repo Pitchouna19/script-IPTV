@@ -93,21 +93,111 @@ install_pkg_config() {
     read -p "Appuyez sur [Enter] pour continuer..."
 }
 
-# Fonction pour installer nginx
 install_nginx() {
-    echo "Installation de nginx..."
-    sudo apt install -y nginx
-    if nginx -v &> /dev/null; then
-        echo "nginx installé avec succès."
-        echo "Activation de nginx au démarrage..."
-        sudo systemctl enable nginx
-        echo "Démarrage de nginx..."
-        sudo systemctl start nginx
-    else
-        echo "L'installation de nginx a échoué."
-    fi
+    echo "Que souhaitez-vous installer pour Nginx ?"
+    echo "1) Installation de Nginx pour Client"
+    echo "2) Installation de Nginx pour Serveur (avec interface AJAX)"
+    read -p "Entrez le numéro de votre choix : " nginx_choice
+
+    case $nginx_choice in
+        1)
+            echo "Installation de Nginx pour Client..."
+            sudo apt install -y nginx
+            if nginx -v &> /dev/null; then
+                echo "Nginx installé avec succès."
+                echo "Activation de Nginx au démarrage..."
+                sudo systemctl enable nginx
+                echo "Démarrage de Nginx..."
+                sudo systemctl start nginx
+            else
+                echo "L'installation de Nginx a échoué."
+            fi
+            ;;
+        
+        2)
+            echo "Installation de Nginx pour Serveur avec interface AJAX..."
+            sudo apt install -y nginx
+            if nginx -v &> /dev/null; then
+                echo "Nginx installé avec succès."
+                echo "Activation de Nginx au démarrage..."
+                sudo systemctl enable nginx
+                echo "Démarrage de Nginx..."
+                sudo systemctl start nginx
+
+                # Configurer Nginx pour écouter sur le port 9090
+                sudo bash -c "cat > /etc/nginx/sites-available/clients << EOF
+server {
+    listen 9090;
+    server_name localhost;
+
+    location / {
+        root /var/www/html;
+        index index.html;
+    }
+
+    location /clients.json {
+        alias /var/lib/mosquitto/clients.json;
+        default_type application/json;
+        add_header Access-Control-Allow-Origin *;
+    }
+}
+EOF"
+
+                # Activer cette nouvelle configuration
+                sudo ln -s /etc/nginx/sites-available/clients /etc/nginx/sites-enabled/
+                sudo systemctl restart nginx
+
+                # Création de l'interface AJAX
+                sudo mkdir -p /var/www/html
+                sudo bash -c "cat > /var/www/html/index.html << EOF
+<!DOCTYPE html>
+<html lang='fr'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Clients MQTT</title>
+    <script>
+        function loadClientData() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var clients = JSON.parse(this.responseText);
+                    var output = '<h2>Liste des Clients MQTT</h2><ul>';
+                    clients.forEach(function(client) {
+                        output += '<li>IP: ' + client.ip + ', Charge CPU: ' + client.cpu_load + '%, Trafic IN: ' + client.network_in + ', Trafic OUT: ' + client.network_out + '</li>';
+                    });
+                    output += '</ul>';
+                    document.getElementById('clientData').innerHTML = output;
+                }
+            };
+            xhttp.open('GET', '/clients.json', true);
+            xhttp.send();
+        }
+
+        setInterval(loadClientData, 5000); // Actualisation toutes les 5 secondes
+    </script>
+</head>
+<body onload='loadClientData()'>
+    <div id='clientData'>
+        <p>Chargement des données...</p>
+    </div>
+</body>
+</html>
+EOF"
+
+                echo "L'interface AJAX est disponible sur http://localhost:9090"
+            else
+                echo "L'installation de Nginx a échoué."
+            fi
+            ;;
+        
+        *)
+            echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
+            ;;
+    esac
     read -p "Appuyez sur [Enter] pour continuer..."
 }
+
 
 
 install_mosquitto() {

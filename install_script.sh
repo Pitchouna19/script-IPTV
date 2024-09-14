@@ -280,6 +280,7 @@ EOF"
 
 
 
+
 # Fonction pour installer curl
 install_curl() {
     echo "Installation de curl..."

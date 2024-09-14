@@ -235,27 +235,46 @@ echo
 # Création du script pour écouter sur le topic /client/info
 cat << EOF | sudo tee /usr/local/bin/mqtt_server_listener.sh > /dev/null
 #!/bin/bash
-# Script pour écouter sur le topic /client/info et ajouter chaque message sur une nouvelle ligne dans le fichier clients.json
+# Script pour écouter sur le topic /client/info et maintenir un tableau JSON unique basé sur l'IP
 TOPIC="/client/info"
 JSON_FILE="/var/lib/mosquitto/clients.json"
 BROKER_IP="$broker_ip"
 MQTT_USER="$mqtt_user_script"
 MQTT_PASS="$mqtt_pass_script"
 
-# Initialiser le fichier JSON s'il n'existe pas
-if [ ! -f "\$JSON_FILE" ]; then
-    sudo touch "\$JSON_FILE"
-    sudo chmod 666 "\$JSON_FILE" # Assurez-vous que le fichier est accessible en écriture pour tout utilisateur
-fi
+# Initialiser le fichier JSON vide s'il n'existe pas ou le vider au démarrage
+sudo bash -c "echo '[]' > \$JSON_FILE"
+sudo chmod 666 \$JSON_FILE  # S'assurer que le fichier est accessible en écriture
 
-# Écouter les messages sur le topic et les ajouter directement dans le fichier
+# Fonction pour mettre à jour ou ajouter un client dans le tableau JSON
+update_or_add_client() {
+    local message=\$1
+    local ip=\$(echo "\$message" | jq -r '.ip')
+
+    # Charger le fichier JSON actuel
+    local current_data=\$(cat "\$JSON_FILE")
+
+    # Vérifier si l'IP existe déjà dans le tableau
+    if echo "\$current_data" | jq -e ".[] | select(.ip == \"\$ip\")" > /dev/null; then
+        # Si l'IP existe, mettre à jour les valeurs correspondantes
+        current_data=\$(echo "\$current_data" | jq "map(if .ip == \"\$ip\" then \$message else . end)")
+    else
+        # Si l'IP n'existe pas, ajouter une nouvelle entrée
+        current_data=\$(echo "\$current_data" | jq ". += [\$message]")
+    fi
+
+    # Sauvegarder le nouveau contenu dans le fichier JSON
+    echo "\$current_data" > "\$JSON_FILE"
+}
+
+# Écouter les messages sur le topic et traiter chaque message
 mosquitto_sub -h "\$BROKER_IP" -u "\$MQTT_USER" -P "\$MQTT_PASS" -t "\$TOPIC" | while read -r message
 do
     # Afficher le message reçu pour déboguer
     echo "Message reçu : \$message"
-    
-    # Ajouter chaque message reçu sur une nouvelle ligne dans le fichier
-    echo "\$message" >> "\$JSON_FILE"
+
+    # Mettre à jour ou ajouter le client dans le tableau JSON
+    update_or_add_client "\$message"
 done
 EOF
 

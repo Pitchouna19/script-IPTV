@@ -119,33 +119,21 @@ install_mosquitto() {
     case $mosquitto_choice in
         1)
             echo "Installation du serveur et du client Mosquitto..."
-            # Installation du serveur et du client Mosquitto
             sudo apt install -y mosquitto mosquitto-clients
-
-            # Démarrage du service Mosquitto
             sudo systemctl start mosquitto
-
-            # Activation de Mosquitto au démarrage
             sudo systemctl enable mosquitto
 
-            # Vérification si le service est actif
             if [ "$(sudo systemctl is-active mosquitto)" = "active" ]; then
                 echo "Serveur Mosquitto installé et actif."
                 echo "Client Mosquitto installé avec succès."
-
-                # Configuration de la sécurité
                 read -p "Entrez le nom d'utilisateur pour Mosquitto : " mqtt_user
                 sudo mosquitto_passwd -c /etc/mosquitto/passwordfile "$mqtt_user"
 
-                # Modification du fichier de configuration Mosquitto
                 sudo bash -c 'echo "
 allow_anonymous false
 password_file /etc/mosquitto/passwordfile
 " >> /etc/mosquitto/mosquitto.conf'
-
-                # Redémarrage du service Mosquitto pour appliquer les changements
                 sudo systemctl restart mosquitto
-
                 echo "Configuration de la sécurité terminée."
             else
                 echo "Erreur : Mosquitto n'est pas actif."
@@ -159,6 +147,68 @@ password_file /etc/mosquitto/passwordfile
             # Vérification de l'installation du client Mosquitto
             if apt list --installed 2>/dev/null | grep -q "^mosquitto-clients/"; then
                 echo "mosquitto-clients est installé avec succès."
+
+                # Demande des informations de configuration
+                read -p "Entrez l'IP du broker Mosquitto : " broker_ip
+                read -p "Entrez le nom d'utilisateur MQTT : " mqtt_user
+                read -s -p "Entrez le mot de passe MQTT : " mqtt_pass
+                echo
+
+                # Création du script client pour envoyer les données au broker
+                sudo bash -c "cat > /usr/local/bin/client_report.sh << EOF
+#!/bin/bash
+# Script pour envoyer les informations du client au broker MQTT
+
+BROKER_IP='$broker_ip'
+MQTT_USER='$mqtt_user'
+MQTT_PASS='$mqtt_pass'
+TOPIC='/client/info'
+
+while true; do
+    # Récupérer l'IP du client
+    client_ip=\$(hostname -I | awk '{print \$1}')
+    
+    # Récupérer la charge CPU par cœur
+    cpu_load=\$(mpstat -P ALL 1 1 | awk '/^[0-9]/ {print \$3}')
+    
+    # Récupérer le trafic réseau IN et OUT
+    network_in=\$(cat /proc/net/dev | awk '/eth0/ {print \$2}')
+    network_out=\$(cat /proc/net/dev | awk '/eth0/ {print \$10}')
+
+    # Créer un objet JSON avec les informations
+    json_data=\$(jq -n --arg ip "\$client_ip" --argjson cpu_load "\$cpu_load" --arg net_in "\$network_in" --arg net_out "\$network_out" \
+    '{"ip": \$ip, "cpu_load": \$cpu_load, "network_in": \$net_in, "network_out": \$net_out}')
+
+    # Envoyer les données au broker MQTT
+    mosquitto_pub -h \$BROKER_IP -u \$MQTT_USER -P \$MQTT_PASS -t \$TOPIC -m "\$json_data"
+
+    # Attendre 10 secondes avant d'envoyer à nouveau
+    sleep 10
+done
+EOF"
+
+                # Rendre le script exécutable
+                sudo chmod +x /usr/local/bin/client_report.sh
+
+                # Création du service systemd pour démarrer le script au démarrage
+                sudo bash -c "cat > /etc/systemd/system/client_mqtt.service << EOF
+[Unit]
+Description=Service pour envoyer des informations système au broker MQTT
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/client_report.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+                # Activer et démarrer le service
+                sudo systemctl enable client_mqtt.service
+                sudo systemctl start client_mqtt.service
+
+                echo "Le service MQTT client a été configuré et démarré pour envoyer des informations au broker."
             else
                 echo "L'installation du client Mosquitto a échoué."
             fi
@@ -170,6 +220,7 @@ password_file /etc/mosquitto/passwordfile
     esac
     read -p "Appuyez sur [Enter] pour continuer..."
 }
+
 
 # Fonction pour installer curl
 install_curl() {

@@ -226,50 +226,44 @@ password_file /etc/mosquitto/passwordfile
                 sudo systemctl restart mosquitto
                 echo "Configuration de la sécurité terminée."
 
-                # Demander les informations pour le script d'écoute
-                read -p "Entrez l'IP du broker Mosquitto : " broker_ip
-                read -p "Entrez le nom d'utilisateur MQTT pour le script : " mqtt_user_script
-                read -s -p "Entrez le mot de passe MQTT pour le script : " mqtt_pass_script
-                echo
+               # Demander les informations pour le script d'écoute
+read -p "Entrez l'IP du broker Mosquitto : " broker_ip
+read -p "Entrez le nom d'utilisateur MQTT pour le script : " mqtt_user_script
+read -s -p "Entrez le mot de passe MQTT pour le script : " mqtt_pass_script
+echo
 
-                # Création du script pour écouter sur le topic /client/info
-                sudo bash -c "cat > /usr/local/bin/mqtt_server_listener.sh << 'EOF'
+# Création du script pour écouter sur le topic /client/info
+cat << EOF | sudo tee /usr/local/bin/mqtt_server_listener.sh > /dev/null
 #!/bin/bash
-# Script pour écouter sur le topic /client/info et mettre à jour le fichier clients.json
-
-TOPIC='/client/info'
-JSON_FILE='/var/lib/mosquitto/clients.json'
+# Script pour écouter sur le topic /client/info et ajouter chaque message sur une nouvelle ligne dans le fichier clients.json
+TOPIC="/client/info"
+JSON_FILE="/var/lib/mosquitto/clients.json"
+BROKER_IP="$broker_ip"
+MQTT_USER="$mqtt_user_script"
+MQTT_PASS="$mqtt_pass_script"
 
 # Initialiser le fichier JSON s'il n'existe pas
-if [ ! -f \$JSON_FILE ]; then
-    echo '[]' > \$JSON_FILE
+if [ ! -f "\$JSON_FILE" ]; then
+    sudo touch "\$JSON_FILE"
+    sudo chmod 666 "\$JSON_FILE" # Assurez-vous que le fichier est accessible en écriture pour tout utilisateur
 fi
 
-# Fonction pour mettre à jour le fichier JSON
-update_json_file() {
-    new_data=\$1
-    # Lire l'ancien contenu JSON
-    current_json=\$(cat \$JSON_FILE)
-
-    # Échapper les caractères spéciaux dans les données JSON
-    escaped_new_data=\$(printf '%s' "\$new_data" | jq -c .)
-
-    # Mettre à jour l'IP du client dans le fichier
-    updated_json=\$(echo "\$current_json" | jq --argjson new_data "\$escaped_new_data" '. += [$new_data]')
-
-    # Écrire le nouveau contenu JSON
-    echo "\$updated_json" > \$JSON_FILE
-}
-
-# Écouter les messages sur le topic et mettre à jour le fichier JSON
-mosquitto_sub -h '$broker_ip' -u '$mqtt_user_script' -P '$mqtt_pass_script' -t \$TOPIC | while read -r message
+# Écouter les messages sur le topic et les ajouter directement dans le fichier
+mosquitto_sub -h "\$BROKER_IP" -u "\$MQTT_USER" -P "\$MQTT_PASS" -t "\$TOPIC" | while read -r message
 do
-    # Mettre à jour le fichier JSON avec les nouvelles données
-    update_json_file "\$message"
+    # Afficher le message reçu pour déboguer
+    echo "Message reçu : \$message"
+    
+    # Ajouter chaque message reçu sur une nouvelle ligne dans le fichier
+    echo "\$message" >> "\$JSON_FILE"
 done
-EOF"
+EOF
+
+# Rendre le script exécutable
+sudo chmod +x /usr/local/bin/mqtt_server_listener.sh
 
 echo "Le fichier a été créé avec succès."
+
 
                 # Rendre le script exécutable
                 sudo chmod +x /usr/local/bin/mqtt_server_listener.sh
@@ -307,20 +301,20 @@ EOF"
                 echo "mosquitto-clients est installé avec succès."
 
                 # Demande des informations de configuration
-                read -p "Entrez l'IP du broker Mosquitto : " broker_ip
-                read -p "Entrez le nom d'utilisateur MQTT : " mqtt_user
-                read -s -p "Entrez le mot de passe MQTT : " mqtt_pass
-                echo
+read -p "Entrez l'IP du broker Mosquitto : " broker_ip
+read -p "Entrez le nom d'utilisateur MQTT : " mqtt_user
+read -s -p "Entrez le mot de passe MQTT : " mqtt_pass
+echo
 
-                # Création du script client pour envoyer les données au broker
-                sudo bash -c "cat > /usr/local/bin/client_report.sh << EOF
+# Création du script client pour envoyer les données au broker
+cat << EOF | sudo tee /usr/local/bin/client_report.sh > /dev/null
 #!/bin/bash
 # Script pour envoyer les informations du client au broker MQTT
 
-BROKER_IP='$broker_ip'
-MQTT_USER='$mqtt_user'
-MQTT_PASS='$mqtt_pass'
-TOPIC='/client/info'
+BROKER_IP="$broker_ip"
+MQTT_USER="$mqtt_user"
+MQTT_PASS="$mqtt_pass"
+TOPIC="/client/info"
 
 while true; do
     # Récupérer l'IP locale
@@ -330,35 +324,28 @@ while true; do
     CPU_LOAD=\$(grep 'cpu ' /proc/stat | awk '{usage=(\$2+\$4)*100/(\$2+\$4+\$5)} END {print usage}')
 
     # Récupérer le trafic réseau (octets reçus et envoyés)
-    INTERFACE=\"eth0\"  # Remplacez par votre interface réseau (ex : eth0, wlan0, etc.)
+    INTERFACE=eth0  # Remplacez par votre interface réseau (ex : eth0, wlan0, etc.)
     RX_BYTES=\$(cat /sys/class/net/\$INTERFACE/statistics/rx_bytes)
     TX_BYTES=\$(cat /sys/class/net/\$INTERFACE/statistics/tx_bytes)
 
     # Construire le message JSON
-    MESSAGE=\$(cat <<JSON
-{
-    \"ip\": \"\$IP_CLIENT\",
-    \"cpu_load\": \"\$CPU_LOAD\",
-    \"network_in\": \"\$RX_BYTES\",
-    \"network_out\": \"\$TX_BYTES\"
-}
-JSON
-    )
+    MESSAGE=\$(printf '{\"ip\": \"%s\", \"cpu_load\": \"%s\", \"network_in\": \"%s\", \"network_out\": \"%s\"}' \
+        "\$IP_CLIENT" "\$CPU_LOAD" "\$RX_BYTES" "\$TX_BYTES")
 
     # Publier les informations sur le topic MQTT
-    mosquitto_pub -h \"\$BROKER_IP\" -p \"\$BROKER_PORT\" -u \"\$MQTT_USER\" -P \"\$MQTT_PASS\" -t \"\$TOPIC\" -m \"\$MESSAGE\"
+    mosquitto_pub -h "\$BROKER_IP" -u "\$MQTT_USER" -P "\$MQTT_PASS" -t "\$TOPIC" -m "\$MESSAGE"
 
     # Afficher un message de succès
-    if [[ \$? -eq 0 ]]; then
-        echo \"Informations envoyées avec succès au broker MQTT.\"
+    if [ \$? -eq 0 ]; then
+        echo "Informations envoyées avec succès au broker MQTT."
     else
-        echo \"Erreur lors de l'envoi des informations au broker MQTT.\"
+        echo "Erreur lors de l'envoi des informations au broker MQTT."
     fi
 
     # Attendre 10 secondes avant de répéter
     sleep 10
 done
-EOF"
+EOF
 
                 # Rendre le script exécutable
                 sudo chmod +x /usr/local/bin/client_report.sh

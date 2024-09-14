@@ -110,18 +110,17 @@ install_nginx() {
 }
 
 
-# Fonction pour installer Mosquitto (MQTT)
 install_mosquitto() {
     echo "Que souhaitez-vous installer pour Mosquitto (MQTT) ?"
-    echo "1) Serveur Mosquitto"
-    echo "2) Client Mosquitto"
+    echo "1) Serveur Mosquitto (inclut le client)"
+    echo "2) Client Mosquitto uniquement"
     read -p "Entrez le numéro de votre choix : " mosquitto_choice
 
     case $mosquitto_choice in
         1)
-            echo "Installation du serveur Mosquitto..."
-            # Installation du serveur Mosquitto
-            sudo apt install -y mosquitto
+            echo "Installation du serveur et du client Mosquitto..."
+            # Installation du serveur et du client Mosquitto
+            sudo apt install -y mosquitto mosquitto-clients
 
             # Démarrage du service Mosquitto
             sudo systemctl start mosquitto
@@ -132,6 +131,7 @@ install_mosquitto() {
             # Vérification si le service est actif
             if [ "$(sudo systemctl is-active mosquitto)" = "active" ]; then
                 echo "Serveur Mosquitto installé et actif."
+                echo "Client Mosquitto installé avec succès."
 
                 # Configuration de la sécurité
                 read -p "Entrez le nom d'utilisateur pour Mosquitto : " mqtt_user
@@ -156,19 +156,9 @@ password_file /etc/mosquitto/passwordfile
             echo "Installation du client Mosquitto..."
             sudo apt install -y mosquitto-clients
 
-            # Vérification de l'installation du client
-            if mosquitto_sub -h localhost &> /dev/null; then
-                echo "Client Mosquitto installé avec succès."
-
-                # Demander l'IP du broker pour configurer le client
-                read -p "Entrez l'adresse IP du broker Mosquitto : " broker_ip
-                sudo bash -c "cat > /etc/mosquitto/conf.d/client.conf << EOF
-connection local
-address $broker_ip
-username $mqtt_user
-password /etc/mosquitto/passwordfile
-EOF"
-
+            # Vérification de l'installation du client Mosquitto
+            if apt list --installed 2>/dev/null | grep -q "^mosquitto-clients/"; then
+                echo "mosquitto-clients est installé avec succès."
             else
                 echo "L'installation du client Mosquitto a échoué."
             fi
@@ -180,9 +170,6 @@ EOF"
     esac
     read -p "Appuyez sur [Enter] pour continuer..."
 }
-
-
-
 
 # Fonction pour installer curl
 install_curl() {

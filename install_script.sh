@@ -112,7 +112,7 @@ install_nginx() {
 
 install_mosquitto() {
     echo "Que souhaitez-vous installer pour Mosquitto (MQTT) ?"
-    echo "1) Serveur Mosquitto (inclut le client)"
+    echo "1) Serveur Mosquitto (inclut le client et le service d'écoute)"
     echo "2) Client Mosquitto uniquement"
     read -p "Entrez le numéro de votre choix : " mosquitto_choice
 
@@ -135,6 +135,63 @@ password_file /etc/mosquitto/passwordfile
 " >> /etc/mosquitto/mosquitto.conf'
                 sudo systemctl restart mosquitto
                 echo "Configuration de la sécurité terminée."
+
+                # Création du script pour écouter sur le topic /client/info
+                sudo bash -c "cat > /usr/local/bin/mqtt_server_listener.sh << EOF
+#!/bin/bash
+# Script pour écouter sur le topic /client/info et mettre à jour le fichier clients.json
+
+TOPIC='/client/info'
+JSON_FILE='/var/lib/mosquitto/clients.json'
+
+# Initialiser le fichier JSON s'il n'existe pas
+if [ ! -f \$JSON_FILE ]; then
+    echo '[]' > \$JSON_FILE
+fi
+
+# Fonction pour mettre à jour le fichier JSON
+update_json_file() {
+    new_data=\$1
+    # Lire l'ancien contenu JSON
+    current_json=\$(cat \$JSON_FILE)
+    
+    # Mettre à jour l'IP du client dans le fichier
+    updated_json=\$(echo \$current_json | jq --argjson new_data "\$new_data" '. += [\$new_data]')
+    
+    # Écrire le nouveau contenu JSON
+    echo "\$updated_json" > \$JSON_FILE
+}
+
+# Écouter les messages sur le topic et mettre à jour le fichier JSON
+mosquitto_sub -t \$TOPIC | while read -r message
+do
+    # Mettre à jour le fichier JSON avec les nouvelles données
+    update_json_file "\$message"
+done
+EOF"
+
+                # Rendre le script exécutable
+                sudo chmod +x /usr/local/bin/mqtt_server_listener.sh
+
+                # Création du service systemd pour démarrer le script au démarrage
+                sudo bash -c "cat > /etc/systemd/system/mqtt_server_listener.service << EOF
+[Unit]
+Description=Service pour écouter sur le topic /client/info et mettre à jour un fichier JSON avec les informations des clients
+After=mosquitto.service
+
+[Service]
+ExecStart=/usr/local/bin/mqtt_server_listener.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+                # Activer et démarrer le service
+                sudo systemctl enable mqtt_server_listener.service
+                sudo systemctl start mqtt_server_listener.service
+
+                echo "Le service d'écoute MQTT a été configuré et démarré pour enregistrer les informations des clients."
             else
                 echo "Erreur : Mosquitto n'est pas actif."
             fi
@@ -220,6 +277,7 @@ EOF"
     esac
     read -p "Appuyez sur [Enter] pour continuer..."
 }
+
 
 
 # Fonction pour installer curl

@@ -43,7 +43,7 @@ install_tools() {
     sudo apt update
 
     # Installer les outils nécessaires
-    for tool in unzip automake tclsh cmake pkg-config nginx curl git; do
+    for tool in unzip automake tclsh cmake pkg-config curl git; do
         echo "Installation de $tool..."
         sudo apt install -y $tool
         echo -e "$tool : $(check_installed $tool)"
@@ -486,6 +486,7 @@ show_menu() {
     echo "               MENU PRINCIPAL          "
     echo "======================================="
     echo "1) les outils nécessaires"
+    echo "6) Installer Nginx (client/Serveur)"
     echo "2) Installer et configurer Mosquitto (MQTT)"
     echo "3) Installer Docker"
     echo "4) Installer SRS (Simple Real-time Server)"
@@ -538,6 +539,9 @@ while true; do
         5)
             echo "Quitter le script."
             exit 0
+            ;;
+        6)
+            install_nginx
             ;;
         *)
             echo "Option invalide. Veuillez choisir une option entre 1 et 5."

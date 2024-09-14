@@ -312,24 +312,39 @@ MQTT_PASS='$mqtt_pass'
 TOPIC='/client/info'
 
 while true; do
-    # Récupérer l'IP du client
-    client_ip=\$(hostname -I | awk '{print \$1}')
-    
+    # Récupérer l'IP locale
+    IP_CLIENT=\$(hostname -I | awk '{print \$1}')
+
     # Récupérer la charge CPU par cœur
-    cpu_load=\$(mpstat -P ALL 1 1 | awk '/^[0-9]/ {print \$3}')
-    
-    # Récupérer le trafic réseau IN et OUT
-    network_in=\$(cat /proc/net/dev | awk '/eth0/ {print \$2}')
-    network_out=\$(cat /proc/net/dev | awk '/eth0/ {print \$10}')
+    CPU_LOAD=\$(grep 'cpu ' /proc/stat | awk '{usage=(\$2+\$4)*100/(\$2+\$4+\$5)} END {print usage}')
 
-    # Créer un objet JSON avec les informations
-    json_data=\$(jq -n --arg ip "\$client_ip" --argjson cpu_load "\$cpu_load" --arg net_in "\$network_in" --arg net_out "\$network_out" \
-    '{"ip": \$ip, "cpu_load": \$cpu_load, "network_in": \$net_in, "network_out": \$net_out}')
+    # Récupérer le trafic réseau (octets reçus et envoyés)
+    INTERFACE=\"eth0\"  # Remplacez par votre interface réseau (ex : eth0, wlan0, etc.)
+    RX_BYTES=\$(cat /sys/class/net/\$INTERFACE/statistics/rx_bytes)
+    TX_BYTES=\$(cat /sys/class/net/\$INTERFACE/statistics/tx_bytes)
 
-    # Envoyer les données au broker MQTT
-    mosquitto_pub -h \$BROKER_IP -u \$MQTT_USER -P \$MQTT_PASS -t \$TOPIC -m "\$json_data"
+    # Construire le message JSON
+    MESSAGE=\$(cat <<JSON
+{
+    \"ip\": \"\$IP_CLIENT\",
+    \"cpu_load\": \"\$CPU_LOAD\",
+    \"network_in\": \"\$RX_BYTES\",
+    \"network_out\": \"\$TX_BYTES\"
+}
+JSON
+    )
 
-    # Attendre 10 secondes avant d'envoyer à nouveau
+    # Publier les informations sur le topic MQTT
+    mosquitto_pub -h \"\$BROKER_IP\" -p \"\$BROKER_PORT\" -u \"\$MQTT_USER\" -P \"\$MQTT_PASS\" -t \"\$TOPIC\" -m \"\$MESSAGE\"
+
+    # Afficher un message de succès
+    if [[ \$? -eq 0 ]]; then
+        echo \"Informations envoyées avec succès au broker MQTT.\"
+    else
+        echo \"Erreur lors de l'envoi des informations au broker MQTT.\"
+    fi
+
+    # Attendre 10 secondes avant de répéter
     sleep 10
 done
 EOF"

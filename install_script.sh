@@ -43,7 +43,7 @@ install_tools() {
     sudo apt update
 
     # Installer les outils nécessaires
-    for tool in unzip automake tclsh cmake pkg-config curl git; do
+    for tool in unzip automake tclsh cmake pkg-config curl git jq; do
         echo "Installation de $tool..."
         sudo apt install -y $tool
         echo -e "$tool : $(check_installed $tool)"
@@ -226,8 +226,14 @@ password_file /etc/mosquitto/passwordfile
                 sudo systemctl restart mosquitto
                 echo "Configuration de la sécurité terminée."
 
+                # Demander les informations pour le script d'écoute
+                read -p "Entrez l'IP du broker Mosquitto : " broker_ip
+                read -p "Entrez le nom d'utilisateur MQTT pour le script : " mqtt_user_script
+                read -s -p "Entrez le mot de passe MQTT pour le script : " mqtt_pass_script
+                echo
+
                 # Création du script pour écouter sur le topic /client/info
-                sudo bash -c "cat > /usr/local/bin/mqtt_server_listener.sh << EOF
+                sudo bash -c "cat > /usr/local/bin/mqtt_server_listener.sh << 'EOF'
 #!/bin/bash
 # Script pour écouter sur le topic /client/info et mettre à jour le fichier clients.json
 
@@ -244,21 +250,26 @@ update_json_file() {
     new_data=\$1
     # Lire l'ancien contenu JSON
     current_json=\$(cat \$JSON_FILE)
-    
+
+    # Échapper les caractères spéciaux dans les données JSON
+    escaped_new_data=\$(printf '%s' "\$new_data" | jq -c .)
+
     # Mettre à jour l'IP du client dans le fichier
-    updated_json=\$(echo \$current_json | jq --argjson new_data "\$new_data" '. += [\$new_data]')
-    
+    updated_json=\$(echo "\$current_json" | jq --argjson new_data "\$escaped_new_data" '. += [$new_data]')
+
     # Écrire le nouveau contenu JSON
     echo "\$updated_json" > \$JSON_FILE
 }
 
 # Écouter les messages sur le topic et mettre à jour le fichier JSON
-mosquitto_sub -t \$TOPIC | while read -r message
+mosquitto_sub -h '$broker_ip' -u '$mqtt_user_script' -P '$mqtt_pass_script' -t \$TOPIC | while read -r message
 do
     # Mettre à jour le fichier JSON avec les nouvelles données
     update_json_file "\$message"
 done
 EOF"
+
+echo "Le fichier a été créé avec succès."
 
                 # Rendre le script exécutable
                 sudo chmod +x /usr/local/bin/mqtt_server_listener.sh

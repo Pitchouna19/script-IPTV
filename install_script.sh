@@ -151,10 +151,10 @@ EOF"
                 sudo mkdir -p /var/www/html
                 sudo bash -c "cat > /var/www/html/index.html << EOF
 <!DOCTYPE html>
-<html lang="fr">
+<html lang=\"fr\">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
     <title>Clients MQTT</title>
     <style>
         body {
@@ -243,14 +243,14 @@ EOF"
                     var clients = JSON.parse(this.responseText);
                     var output = '<h2>Liste des Clients MQTT</h2>';
                     clients.forEach(function (client) {
-                        output += `
-                        <div class="client-container">
-                            <p><strong>IP:</strong> ${client.ip}</p>
+                        output += \`
+                        <div class=\"client-container\">
+                            <p><strong>IP:</strong> \${client.ip}</p>
                             <p><strong>Charge CPU:</strong></p>
-                            <div class="progress-bar"><div style="width: ${client.cpu_load}%; ">${client.cpu_load}%</div></div>
-                            <p><span class="network-in">Trafic IN: ${client.network_in} kB/s</span></p>
-                            <p><span class="network-out">Trafic OUT: ${client.network_out} kB/s</span></p>
-                        </div>`;
+                            <div class=\"progress-bar\"><div style=\"width: \${client.cpu_load}%;\">\${client.cpu_load}%</div></div>
+                            <p><span class=\"network-in\">Trafic IN: \${client.network_in} kB/s</span></p>
+                            <p><span class=\"network-out\">Trafic OUT: \${client.network_out} kB/s</span></p>
+                        </div>\`;
                     });
                     document.getElementById('clientData').innerHTML = output;
                 }
@@ -278,31 +278,31 @@ EOF"
         setInterval(loadClientData, 5000);
     </script>
 </head>
-<body onload="loadClientData(); showPage('dashboard');">
+<body onload=\"loadClientData(); showPage('dashboard');\">
     <!-- Top bar with navigation buttons -->
-    <div class="top-bar">
-        <button id="dashboard-btn" class="active" onclick="showPage('dashboard')">Dashboard</button>
-        <button id="setting1-btn" onclick="showPage('setting1')">Setting 1</button>
-        <button id="setting2-btn" onclick="showPage('setting2')">Setting 2</button>
+    <div class=\"top-bar\">
+        <button id=\"dashboard-btn\" class=\"active\" onclick=\"showPage('dashboard')\">Dashboard</button>
+        <button id=\"setting1-btn\" onclick=\"showPage('setting1')\">Setting 1</button>
+        <button id=\"setting2-btn\" onclick=\"showPage('setting2')\">Setting 2</button>
     </div>
 
     <!-- Content sections for each page -->
-    <div class="content">
+    <div class=\"content\">
         <!-- Dashboard page -->
-        <div id="dashboard">
-            <div id="clientData">
+        <div id=\"dashboard\">
+            <div id=\"clientData\">
                 <p>Chargement des données...</p>
             </div>
         </div>
 
         <!-- Setting 1 page (currently empty) -->
-        <div id="setting1" class="hidden">
+        <div id=\"setting1\" class=\"hidden\">
             <h2>Paramètre 1</h2>
             <p>Contenu de la page Setting 1.</p>
         </div>
 
         <!-- Setting 2 page (currently empty) -->
-        <div id="setting2" class="hidden">
+        <div id=\"setting2\" class=\"hidden\">
             <h2>Paramètre 2</h2>
             <p>Contenu de la page Setting 2.</p>
         </div>

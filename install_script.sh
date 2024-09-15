@@ -43,7 +43,7 @@ install_tools() {
     sudo apt update
 
     # Installer les outils nécessaires
-    for tool in unzip automake tclsh cmake pkg-config curl git jq; do
+    for tool in unzip automake tclsh cmake pkg-config curl git jq sysstat bc; do
         echo "Installation de $tool..."
         sudo apt install -y $tool
         echo -e "$tool : $(check_installed $tool)"
@@ -340,12 +340,25 @@ while true; do
     IP_CLIENT=\$(hostname -I | awk '{print \$1}')
 
     # Récupérer la charge CPU par cœur
-    CPU_LOAD=\$(grep 'cpu ' /proc/stat | awk '{usage=(\$2+\$4)*100/(\$2+\$4+\$5)} END {print usage}')
-
+    #CPU_LOAD=\$(awk -v INTERVAL=1 '{cpu_now=($2+$4); total_now=($2+$4+$5)} {if (NR>1) {cpu_diff=cpu_now-prev_cpu; total_diff=total_now-prev_total; usage=(cpu_diff*100)/total_diff; print usage "%"}; prev_cpu=cpu_now; prev_total=total_now; fflush(); system("sleep " INTERVAL);}' <(grep 'cpu ' /proc/stat))
+    
+    CPU_LOAD=\$(mpstat 1 1 | awk '/all/ && NR==4 {print 100 - \$12}')
+    
     # Récupérer le trafic réseau (octets reçus et envoyés)
     INTERFACE=eth0  # Remplacez par votre interface réseau (ex : eth0, wlan0, etc.)
-    RX_BYTES=\$(cat /sys/class/net/\$INTERFACE/statistics/rx_bytes)
-    TX_BYTES=\$(cat /sys/class/net/\$INTERFACE/statistics/tx_bytes)
+    RX_BYTES_BEFORE=\$(cat /sys/class/net/\$INTERFACE/statistics/rx_bytes)
+    TX_BYTES_BEFORE=\$(cat /sys/class/net/\$INTERFACE/statistics/tx_bytes)
+    
+    sleep 1
+    
+    RX_BYTES_AFTER=\$(cat /sys/class/net/\$INTERFACE/statistics/rx_bytes)
+    TX_BYTES_AFTER=\$(cat /sys/class/net/\$INTERFACE/statistics/tx_bytes)
+
+    RX_BYTES=\$( echo "scale=2; ("\$RX_BYTES_AFTER - \$RX_BYTES_BEFORE") / 1024" | bc )
+    TX_BYTES=\$( echo "scale=2; ("\$TX_BYTES_AFTER - \$TX_BYTES_BEFORE") / 1024" | bc )
+    
+    #RX_BYTES=\$(cat /sys/class/net/\$INTERFACE/statistics/rx_bytes)
+    #TX_BYTES=\$(cat /sys/class/net/\$INTERFACE/statistics/tx_bytes)
 
     # Construire le message JSON
     MESSAGE=\$(printf '{\"ip\": \"%s\", \"cpu_load\": \"%s\", \"network_in\": \"%s\", \"network_out\": \"%s\"}' \
@@ -362,7 +375,7 @@ while true; do
     fi
 
     # Attendre 10 secondes avant de répéter
-    sleep 10
+    sleep 4
 done
 EOF
 

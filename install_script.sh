@@ -164,7 +164,7 @@ EOF"
                     var clients = JSON.parse(this.responseText);
                     var output = '<h2>Liste des Clients MQTT</h2><ul>';
                     clients.forEach(function(client) {
-                        output += '<li>IP: ' + client.ip + ', Charge CPU: ' + client.cpu_load + '%, Trafic IN: ' + client.network_in + ', Trafic OUT: ' + client.network_out + '</li>';
+                        output += '<li>IP: ' + client.ip + ', Charge CPU: ' + client.cpu_load + ' %, Trafic IN: ' + client.network_in + ' kB/s, Trafic OUT: ' + client.network_out + ' kB/s</li>';
                     });
                     output += '</ul>';
                     document.getElementById('clientData').innerHTML = output;

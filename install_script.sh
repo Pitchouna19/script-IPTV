@@ -164,6 +164,7 @@ EOF"
             ;;
     esac
     read -p "Appuyez sur [Enter] pour continuer..."
+
 }
 
 
@@ -205,7 +206,7 @@ cat << EOF | sudo tee /usr/local/bin/mqtt_server_listener.sh > /dev/null
 #!/bin/bash
 # Script pour écouter sur le topic /client/info et maintenir un tableau JSON unique basé sur l'IP
 TOPIC="/client/info"
-JSON_FILE="/var/lib/mosquitto/clients.json"
+JSON_FILE="/var/www/html/clients.json"
 BROKER_IP="$broker_ip"
 MQTT_USER="$mqtt_user_script"
 MQTT_PASS="$mqtt_pass_script"
@@ -379,6 +380,100 @@ EOF"
             ;;
     esac
     read -p "Appuyez sur [Enter] pour continuer..."
+
+
+
+    ####
+   
+echo "Installation du client Mosquitto / Info Monitoring..."
+
+# Demande des informations de configuration
+read -p "Entrez l'IP du broker Mosquitto : " broker_ip
+read -p "Entrez le nom d'utilisateur MQTT : " mqtt_user
+read -s -p "Entrez le mot de passe MQTT : " mqtt_pass
+echo
+
+# Création du script client pour envoyer les données au broker
+cat << EOF | sudo tee /usr/local/bin/client_report_monitor.sh > /dev/null
+#!/bin/bash
+# Script pour envoyer les informations du client au broker MQTT
+
+BROKER_IP="$broker_ip"
+MQTT_USER="$mqtt_user"
+MQTT_PASS="$mqtt_pass"
+TOPIC="/client/monitoring"
+
+# Récupérer l'IP locale
+    IP_CLIENT=\$(hostname -I | awk '{print \$1}')
+
+# URLs à récupérer
+URLS=(
+    "http://\$IP_CLIENT:1985/api/v1/vhosts/"
+    "http://\$IP_CLIENT:1985/api/v1/client/"
+    "http://\$IP_CLIENT:1985/api/v1/streams/"
+    "http://\$IP_CLIENT:1985/api/v1/publish/"
+    "http://\$IP_CLIENT:1985/api/v1/play/"
+)
+
+while true; do    
+
+    # Initialisation d'une liste JSON vide
+    JSON_LIST="["
+
+    # Boucler sur les URLs et récupérer les JSONs
+    for url in "\${URLS[@]}"; do
+        # Télécharger le JSON
+        json_data=\$(curl -s \$url)
+
+        # Remplacer la valeur de "server" par \$IP_CLIENT
+        json_modified=\$(echo \$json_data | sed "s/\"server\": *\"[^\"]*\"/\"server\": \"\$IP_CLIENT\"/g")
+
+        # Ajouter le JSON modifié à la liste JSON
+        JSON_LIST="\$JSON_LIST\$json_modified,"
+    done
+
+    # Retirer la dernière virgule et fermer la liste JSON
+    JSON_LIST=\$(echo \$JSON_LIST | sed 's/,\$//')
+    JSON_LIST="\$JSON_LIST]"
+
+    # Publier les informations sur le topic MQTT
+    mosquitto_pub -h "\$BROKER_IP" -u "\$MQTT_USER" -P "\$MQTT_PASS" -t "\$TOPIC" -m "\$JSON_LIST"
+
+    # Afficher un message de succès
+    if [ \$? -eq 0 ]; then
+        echo "Informations envoyées avec succès au broker MQTT."
+    else
+        echo "Erreur lors de l'envoi des informations au broker MQTT."
+    fi
+
+    # Attendre 4 secondes avant de répéter
+    sleep 4
+done
+EOF
+
+# Rendre le script exécutable
+sudo chmod +x /usr/local/bin/client_report_monitor.sh
+
+# Création du service systemd pour démarrer le script au démarrage
+sudo bash -c "cat > /etc/systemd/system/client_mqtt_monitor.service << EOF
+[Unit]
+Description=Service pour envoyer des informations système au broker MQTT
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/client_report_monitor.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+# Activer et démarrer le service
+sudo systemctl enable client_mqtt_monitor.service
+sudo systemctl start client_mqtt_monitor.service
+
+echo "Le service MQTT client a été configuré et démarré pour envoyer des informations au broker."
+
 }
 
 

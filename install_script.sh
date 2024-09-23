@@ -205,7 +205,6 @@ EOF"
 
     # Création de l'interface AJAX
     sudo mkdir -p /var/www/html
-    sudo bash -c 'echo "[]" > /var/www/html/clients.json'
     sudo ln -s /var/lib/mosquitto/clients.json /var/www/html/clients.json
     # Copie de index.html vers var/www/html/
     sudo cp index.html /var/www/html/
@@ -322,9 +321,11 @@ function installation_client() {
 # Fonction spécifique : Installation en mode Serveur
 function installation_serveur() {
 
-    echo "Démarrage de l'installation de la securité Brocker..."
-
     echo "Démarrage de l'installation [listener] en mode Serveur..."
+    sleep 2
+
+    echo "Démarrage de l'installation de la securité Brocker [AVANT...]"
+    sleep 2   
 
     # Demander les trois questions et stocker les réponses
     read -p "Quelle est l'IP du Serveur Broker : " serveur_ip
@@ -363,6 +364,9 @@ function installation_serveur() {
     echo "Copie du fichier client_mqtt.service vers /etc/systemd/system/..."
     sudo cp mqtt_server_listener.service /etc/systemd/system/mqtt_server_listener.service
 
+    # Creer le fichier cleints.json
+    sudo bash -c 'echo "[]" > /var/lib/mosquitto/clients.json'
+
     # Activer et démarrer le service
     echo "Activation et démarrage du service mqtt_server_listener.service..."
     sudo systemctl enable mqtt_server_listener.service
@@ -373,6 +377,39 @@ function installation_serveur() {
     echo_green "#  Installation du mode Serveur [Listener] terminée   #"
     echo_green "#                                                     #"
     echo_green "#######################################################"
+
+    sleep 5
+
+    # Copie du fichier mqtt_server_listener_monitoring.sh dans /usr/local/bin
+    echo "Copie du fichier mqtt_server_listener_monitoring.sh vers /usr/local/bin..."
+    sudo cp mqtt_server_listener_monitoring.sh /usr/local/bin/mqtt_server_listener_monitoring.sh
+    
+    # Remplacer les termes 'PPP', 'USPAS', et 'PASW' dans le fichier copié
+    echo "Modification des variables dans le fichier /usr/local/bin/mqtt_server_listener_monitoring.sh..."
+    sudo sed -i "s/PPP/$serveur_ip/g" /usr/local/bin/mqtt_server_listener_monitoring.sh.sh
+    sudo sed -i "s/USPAS/$utilisateur/g" /usr/local/bin/mqtt_server_listener_monitoring.sh
+    sudo sed -i "s/PASW/$mot_de_passe/g" /usr/local/bin/mqtt_server_listener_monitoring.sh
+
+    # Rendre le script exécutable
+    sudo chmod +x /usr/local/bin/mqtt_server_listener_monitoring.sh
+
+    # Copie du fichier mqtt_server_listener_monitoring.service dans /etc/systemd/system/
+    echo "Copie du fichier mqtt_server_listener_monitoring.service vers /etc/systemd/system/..."
+    sudo cp mqtt_server_listener_monitoring.service /etc/systemd/system/mqtt_server_listener_monitoring.service
+
+    # Creer le fichier monitoring.json
+    sudo bash -c 'echo "[]" > /var/lib/mosquitto/monitoring.json'
+
+    # Activer et démarrer le service
+    echo "Activation et démarrage du service mqtt_server_listener_monitoring.service..."
+    sudo systemctl enable mqtt_server_listener_monitoring.service
+    sudo systemctl start mqtt_server_listener_monitoring.service
+
+    echo_green "########################################################"
+    echo_green "#                                                      #"
+    echo_green "#  Installation du mode Serveur [Monitoring] terminée  #"
+    echo_green "#                                                      #"
+    echo_green "########################################################"
 
     sleep 5
 

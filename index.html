@@ -106,11 +106,23 @@
 
         .info-client-container {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
             gap: 10px;
             padding: 10px;
             flex: 1;
+        }
+
+        .lcd-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            color: #0f0;
+            height: 60px;
+            font-size: 20px;
+            font-family: "Courier New", Courier, monospace;
+            border-radius: 5px;
         }
 
         .info-client-container button {
@@ -120,11 +132,8 @@
             border: 1px solid #ccc;
             border-radius: 5px;
             cursor: pointer;
-        }
-
-        .info-client-container button img {
-            width: 100%;
-            height: auto;
+            text-align: center;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -182,7 +191,7 @@
                         const inPercentage = (client.network_in / maxTrafficIn) * 100;
                         const outPercentage = (client.network_out / maxTrafficOut) * 100;
 
-                        output += 
+                        output += `
                         <div class="client-container">
                             <div class="progress-container">
                                 <p><strong>IP:</strong> ${client.ip}</p>
@@ -213,18 +222,15 @@
                             </div>
 
                             <div class="info-client-container">
-                                <!-- 9 boutons avec images issues du dossier assets -->
-                                <button><img src="assets/image1.png" alt="Image 1"></button>
-                                <button><img src="assets/image2.png" alt="Image 2"></button>
-                                <button><img src="assets/image3.png" alt="Image 3"></button>
-                                <button><img src="assets/image4.png" alt="Image 4"></button>
-                                <button><img src="assets/image5.png" alt="Image 5"></button>
-                                <button><img src="assets/image6.png" alt="Image 6"></button>
-                                <button><img src="assets/image7.png" alt="Image 7"></button>
-                                <button><img src="assets/image8.png" alt="Image 8"></button>
-                                <button><img src="assets/image9.png" alt="Image 9"></button>
+                                <!-- Les deux écrans LCD -->
+                                <div class="lcd-display">123</div>
+                                <div class="lcd-display">456</div>
+                                
+                                <!-- Deux boutons avec les labels -->
+                                <button>détail +</button>
+                                <button>détail +</button>
                             </div>
-                        </div>;
+                        </div>`;
                     });
                     document.getElementById('clientData').innerHTML = output;
                 })
@@ -249,15 +255,12 @@
         }
 
         // Mettre à jour les données toutes les 4 secondes
-
         setInterval(loadClientData, 4000);
 
         // Charger les données lorsque la page est chargée
         window.onload = function () {
             loadClientData();
             showPage('dashboard');
-
-        
         };
     </script>
 </body>

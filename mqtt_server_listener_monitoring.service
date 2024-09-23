@@ -1,0 +1,10 @@
+[Unit]
+Description=Service pour écouter sur le topic /client/monitoring et mettre à jour un fichier JSON avec les informations des clients
+After=mosquitto.service
+
+[Service]
+ExecStart=/usr/local/bin/mqtt_server_listener_monitoring.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

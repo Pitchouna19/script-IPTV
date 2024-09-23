@@ -1,0 +1,12 @@
+[Unit]
+Description=SRS Media Server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/start-srs.sh
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script pour écouter sur le topic /client/info et maintenir un tableau JSON unique basé sur l'IP
 TOPIC="/client/info"
-JSON_FILE="/var/www/html/clients.json"
+JSON_FILE="/var/lib/mosquitto/clients.json"
 BROKER_IP="PPP"
 MQTT_USER="USPAS"
 MQTT_PASS="PASW"

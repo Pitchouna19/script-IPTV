@@ -191,10 +191,17 @@ server {
     }
 
     location /clients.json {
-        alias /var/lib/mosquitto/clients.json;
+        alias /var/www/html/clients.json;
         default_type application/json;
         add_header Access-Control-Allow-Origin *;
     }
+
+    location /monitoring.json {
+        alias /var/www/html/monitoring.json;
+        default_type application/json;
+        add_header Access-Control-Allow-Origin *;
+    }
+
 }
 EOF"
 
@@ -206,6 +213,7 @@ EOF"
     # Création de l'interface AJAX
     sudo mkdir -p /var/www/html
     sudo ln -s /var/lib/mosquitto/clients.json /var/www/html/clients.json
+    sudo ln -s /var/lib/mosquitto/monitoring.json /var/www/html/monitoring.json
     # Copie de index.html vers var/www/html/
     sudo cp index.html /var/www/html/
 

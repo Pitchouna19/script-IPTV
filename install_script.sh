@@ -1,503 +1,94 @@
 #!/bin/bash
 
-# Couleurs
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
-# Fonction pour vérifier si un programme est installé
-check_installed() {
-    if [ "$1" = "mosquitto" ]; then
-        server_installed=false
-        client_installed=false
-        
-        if command -v mosquitto &> /dev/null; then
-            server_installed=true
-        fi
-        
-        if command -v mosquitto_pub &> /dev/null; then
-            client_installed=true
-        fi
-        
-        if $server_installed && $client_installed; then
-            echo -e "${GREEN}[CLIENT ET SERVEUR INSTALLÉS]${NC}"
-        elif $server_installed; then
-            echo -e "${GREEN}[SERVEUR INSTALLÉ]${NC} ${RED}[CLIENT NON INSTALLÉ]${NC}"
-        elif $client_installed; then
-            echo -e "${GREEN}[CLIENT INSTALLÉ]${NC} ${RED}[SERVEUR NON INSTALLÉ]${NC}"
-        else
-            echo -e "${RED}[NON INSTALLÉ]${NC}"
-        fi
-    else
-        if command -v $1 &> /dev/null; then
-            echo -e "${GREEN}[INSTALLÉ]${NC}"
-        else
-            echo -e "${RED}[NON INSTALLÉ]${NC}"
-        fi
-    fi
+# Fonction pour afficher un message en vert
+function echo_green() {
+    echo -e "\e[32m$1\e[0m"
 }
 
-# Fonction pour installer les outils nécessaires
-install_tools() {
-    echo "Installation des outils nécessaires..."
-    sudo apt update
-
-    # Installer les outils nécessaires
-    for tool in unzip automake tclsh cmake pkg-config curl git jq sysstat bc; do
-        echo "Installation de $tool..."
-        sudo apt install -y $tool
-        echo -e "$tool : $(check_installed $tool)"
-    done
-    read -p "Appuyez sur [Enter] pour continuer..."
+function echo_red() {
+    echo -e "\e[31m$1\e[0m"
 }
 
-# Fonction pour installer les outils de compilation
-install_build_essentials() {
-    echo "Installation des outils de compilation (gcc, make, etc.)..."
-    sudo apt install -y build-essential
-    read -p "Appuyez sur [Enter] pour continuer..."
-}
-
-# Fonction pour installer unzip
-install_unzip() {
-    echo "Installation de unzip..."
-    sudo apt install -y unzip
-    read -p "Appuyez sur [Enter] pour continuer..."
-}
-
-# Fonction pour installer automake
-install_automake() {
-    echo "Installation de automake..."
-    sudo apt install -y automake
-    read -p "Appuyez sur [Enter] pour continuer..."
-}
-
-# Fonction pour installer tclsh
-install_tclsh() {
-    echo "Installation de tclsh..."
-    sudo apt install -y tclsh
-    read -p "Appuyez sur [Enter] pour continuer..."
-}
-
-# Fonction pour installer cmake
-install_cmake() {
-    echo "Installation de cmake..."
-    sudo apt install -y cmake
-    read -p "Appuyez sur [Enter] pour continuer..."
-}
-
-# Fonction pour installer pkg-config
-install_pkg_config() {
-    echo "Installation de pkg-config..."
-    sudo apt install -y pkg-config
-    read -p "Appuyez sur [Enter] pour continuer..."
-}
-
-install_nginx() {
-    echo "Que souhaitez-vous installer pour Nginx ?"
-    echo "1) Installation de Nginx pour Client"
-    echo "2) Installation de Nginx pour Serveur (avec interface AJAX)"
-    read -p "Entrez le numéro de votre choix : " nginx_choice
-
-    case $nginx_choice in
-        1)
-            echo "Installation de Nginx pour Client..."
-            sudo apt install -y nginx
-            if nginx -v &> /dev/null; then
-                echo "Nginx installé avec succès."
-                echo "Activation de Nginx au démarrage..."
-                sudo systemctl enable nginx
-                echo "Démarrage de Nginx..."
-                sudo systemctl start nginx
-            else
-                echo "L'installation de Nginx a échoué."
-            fi
-            ;;
-        
-        2)
-            echo "Installation de Nginx pour Serveur avec interface AJAX..."
-            sudo apt install -y nginx
-            if nginx -v &> /dev/null; then
-                echo "Nginx installé avec succès."
-                echo "Activation de Nginx au démarrage..."
-                sudo systemctl enable nginx
-                echo "Démarrage de Nginx..."
-                sudo systemctl start nginx
-
-                # Configurer Nginx pour écouter sur le port 9090
-                sudo bash -c "cat > /etc/nginx/sites-available/clients << EOF
-server {
-    listen 9090;
-    server_name localhost;
-
-    location / {
-        root /var/www/html;
-        index index.html;
-    }
-
-    location /clients.json {
-        alias /var/lib/mosquitto/clients.json;
-        default_type application/json;
-        add_header Access-Control-Allow-Origin *;
-    }
-}
-EOF"
-
-                # Activer cette nouvelle configuration
-                sudo ln -s /etc/nginx/sites-available/clients /etc/nginx/sites-enabled/
-                sudo systemctl restart nginx
-
-                # Création de l'interface AJAX
-                sudo mkdir -p /var/www/html
-                sudo ln -s /var/lib/mosquitto/clients.json /var/www/html/clients.json
-                # Copie de index.html vers var/www/html/
-                sudo cp index.html /var/www/html/
-
-                echo "L'interface AJAX est disponible sur http://localhost:9090"
-            else
-                echo "L'installation de Nginx a échoué."
-            fi
-            ;;
-        
-        *)
-            echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
-            ;;
-    esac
-    read -p "Appuyez sur [Enter] pour continuer..."
-
-}
-
-
-
-install_mosquitto() {
-    echo "Que souhaitez-vous installer pour Mosquitto (MQTT) ?"
-    echo "1) Serveur Mosquitto (inclut le client et le service d'écoute)"
-    echo "2) Client Mosquitto uniquement"
-    read -p "Entrez le numéro de votre choix : " mosquitto_choice
-
-    case $mosquitto_choice in
-        1)
-            echo "Installation du serveur et du client Mosquitto..."
-            sudo apt install -y mosquitto mosquitto-clients
-            sudo systemctl start mosquitto
-            sudo systemctl enable mosquitto
-
-            if [ "$(sudo systemctl is-active mosquitto)" = "active" ]; then
-                echo "Serveur Mosquitto installé et actif."
-                echo "Client Mosquitto installé avec succès."
-                read -p "Entrez le nom d'utilisateur pour Mosquitto : " mqtt_user
-                sudo mosquitto_passwd -c /etc/mosquitto/passwordfile "$mqtt_user"
-
-                sudo bash -c 'echo "
-allow_anonymous false
-password_file /etc/mosquitto/passwordfile
-" >> /etc/mosquitto/mosquitto.conf'
-                sudo systemctl restart mosquitto
-                echo "Configuration de la sécurité terminée."
-
-               # Demander les informations pour le script d'écoute
-read -p "Entrez l'IP du broker Mosquitto : " broker_ip
-read -p "Entrez le nom d'utilisateur MQTT pour le script : " mqtt_user_script
-read -s -p "Entrez le mot de passe MQTT pour le script : " mqtt_pass_script
+# Affichage du motif ASCII pour "RST-PI"
+clear
+echo "#############################################"
+echo "#                                           #"
+echo "#     ____  ____  ______   _____  ____      #"
+echo "#    |  _ \|  _ \|  _ \ \ / / _ \|  _ \     #"
+echo "#    | |_) | |_) | |_) \ V / | | | |_) |    #"
+echo "#    |  __/|  __/|  _ < | || |_| |  __/     #"
+echo "#    |_|   |_|   |_| \_\|_| \___/|_|        #"
+echo "#                                           #"
+echo "#             RST-PI Installer              #"
+echo "#############################################"
 echo
 
-# Création du script pour écouter sur le topic /client/info
-cat << EOF | sudo tee /usr/local/bin/mqtt_server_listener.sh > /dev/null
-#!/bin/bash
-# Script pour écouter sur le topic /client/info et maintenir un tableau JSON unique basé sur l'IP
-TOPIC="/client/info"
-JSON_FILE="/var/www/html/clients.json"
-BROKER_IP="$broker_ip"
-MQTT_USER="$mqtt_user_script"
-MQTT_PASS="$mqtt_pass_script"
+# Présentation du choix d'installation
+echo "Veuillez choisir le mode d'installation :"
+echo "1) Installation en mode Client"
+echo "2) Installation en mode Serveur"
+echo "q) Quitter"
 
-# Initialiser le fichier JSON vide s'il n'existe pas ou le vider au démarrage
-sudo bash -c "echo '[]' > \$JSON_FILE"
-sudo chmod 666 \$JSON_FILE  # S'assurer que le fichier est accessible en écriture
+# Lecture du choix de l'utilisateur
+read -p "Entrez votre choix [1/2/q] : " choix
 
-# Fonction pour mettre à jour ou ajouter un client dans le tableau JSON
-update_or_add_client() {
-    local message=\$1
-    local ip=\$(echo "\$message" | jq -r '.ip')
-
-    # Charger le fichier JSON actuel
-    local current_data=\$(cat "\$JSON_FILE")
-
-    # Vérifier si l'IP existe déjà dans le tableau
-    if echo "\$current_data" | jq -e ".[] | select(.ip == \"\$ip\")" > /dev/null; then
-        # Si l'IP existe, mettre à jour les valeurs correspondantes
-        current_data=\$(echo "\$current_data" | jq "map(if .ip == \"\$ip\" then \$message else . end)")
-    else
-        # Si l'IP n'existe pas, ajouter une nouvelle entrée
-        current_data=\$(echo "\$current_data" | jq ". += [\$message]")
-    fi
-
-    # Sauvegarder le nouveau contenu dans le fichier JSON
-    echo "\$current_data" > "\$JSON_FILE"
+# Fonction commune : Mise à jour du système
+function mise_a_jour_systeme() {
+    echo "Mise à jour du système en cours..."
+    sudo apt update && sudo apt upgrade -y
+    echo_green "#############################################"
+    echo_green "#                                           #"
+    echo_green "#        Système Linux Ubuntu à jour        #"
+    echo_green "#                                           #"
+    echo_green "#############################################"
+    sleep 5
 }
 
-# Écouter les messages sur le topic et traiter chaque message
-mosquitto_sub -h "\$BROKER_IP" -u "\$MQTT_USER" -P "\$MQTT_PASS" -t "\$TOPIC" | while read -r message
-do
-    # Afficher le message reçu pour déboguer
-    echo "Message reçu : \$message"
+# Fonction commune : Installation des dépendances
+function installation_dependances() {
+    echo "Installation des dépendances en cours..."
+    sudo apt install -y unzip curl git jq sysstat bc sed
+    echo_green "#############################################"
+    echo_green "#                                           #"
+    echo_green "#      Installation des dépendances OK      #"
+    echo_green "#                                           #"
+    echo_green "#############################################"
+    sleep 5
+}
 
-    # Mettre à jour ou ajouter le client dans le tableau JSON
-    update_or_add_client "\$message"
-done
-EOF
-
-# Rendre le script exécutable
-sudo chmod +x /usr/local/bin/mqtt_server_listener.sh
-
-echo "Le fichier a été créé avec succès."
-
-
-                # Rendre le script exécutable
-                sudo chmod +x /usr/local/bin/mqtt_server_listener.sh
-
-                # Création du service systemd pour démarrer le script au démarrage
-                sudo bash -c "cat > /etc/systemd/system/mqtt_server_listener.service << EOF
-[Unit]
-Description=Service pour écouter sur le topic /client/info et mettre à jour un fichier JSON avec les informations des clients
-After=mosquitto.service
-
-[Service]
-ExecStart=/usr/local/bin/mqtt_server_listener.sh
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF"
-
-                # Activer et démarrer le service
-                sudo systemctl enable mqtt_server_listener.service
-                sudo systemctl start mqtt_server_listener.service
-
-                echo "Le service d'écoute MQTT a été configuré et démarré pour enregistrer les informations des clients."
-            else
-                echo "Erreur : Mosquitto n'est pas actif."
-            fi
-            ;;
-
-        2)
-            echo "Installation du client Mosquitto..."
-            sudo apt install -y mosquitto-clients
-
-            # Vérification de l'installation du client Mosquitto
-            if apt list --installed 2>/dev/null | grep -q "^mosquitto-clients/"; then
-                echo "mosquitto-clients est installé avec succès."
-
-                # Demande des informations de configuration
-read -p "Entrez l'IP du broker Mosquitto : " broker_ip
-read -p "Entrez le nom d'utilisateur MQTT : " mqtt_user
-read -s -p "Entrez le mot de passe MQTT : " mqtt_pass
-echo
-
-# Création du script client pour envoyer les données au broker
-cat << EOF | sudo tee /usr/local/bin/client_report.sh > /dev/null
-#!/bin/bash
-# Script pour envoyer les informations du client au broker MQTT
-
-BROKER_IP="$broker_ip"
-MQTT_USER="$mqtt_user"
-MQTT_PASS="$mqtt_pass"
-TOPIC="/client/info"
-
-while true; do
-    # Récupérer l'IP locale
-    IP_CLIENT=\$(hostname -I | awk '{print \$1}')
-
-    # Récupérer la charge CPU par cœur
-    #CPU_LOAD=\$(awk -v INTERVAL=1 '{cpu_now=($2+$4); total_now=($2+$4+$5)} {if (NR>1) {cpu_diff=cpu_now-prev_cpu; total_diff=total_now-prev_total; usage=(cpu_diff*100)/total_diff; print usage "%"}; prev_cpu=cpu_now; prev_total=total_now; fflush(); system("sleep " INTERVAL);}' <(grep 'cpu ' /proc/stat))
-    
-    CPU_LOAD=\$(mpstat 1 1 | awk '/all/ && NR==4 {print 100 - \$12}')
-    
-    # Récupérer le trafic réseau (octets reçus et envoyés)
-    INTERFACE=eth0  # Remplacez par votre interface réseau (ex : eth0, wlan0, etc.)
-    RX_BYTES_BEFORE=\$(cat /sys/class/net/\$INTERFACE/statistics/rx_bytes)
-    TX_BYTES_BEFORE=\$(cat /sys/class/net/\$INTERFACE/statistics/tx_bytes)
-    
+# Fonction commune : Installation de Mosquitto
+function installation_mosquitto() {
+    echo "Installation de Mosquitto en cours..."
+    sudo apt install -y mosquitto mosquitto-clients || { echo_red "Erreur lors de l'installation de Mosquitto"; exit 1; }
+    echo_green "#############################################"
+    echo_green "#                                           #"
+    echo_green "# Installation Mosquitto Client/Serveur OK  #"
+    echo_green "#                                           #"
+    echo_green "#############################################"
+    echo "Demarage de Mosquitto en cours..."
     sleep 1
-    
-    RX_BYTES_AFTER=\$(cat /sys/class/net/\$INTERFACE/statistics/rx_bytes)
-    TX_BYTES_AFTER=\$(cat /sys/class/net/\$INTERFACE/statistics/tx_bytes)
+    sudo systemctl start mosquitto
+    sudo systemctl enable mosquitto
+    sleep 5
 
-    RX_BYTES=\$( echo "scale=2; ("\$RX_BYTES_AFTER - \$RX_BYTES_BEFORE") / 1024" | bc )
-    TX_BYTES=\$( echo "scale=2; ("\$TX_BYTES_AFTER - \$TX_BYTES_BEFORE") / 1024" | bc )
-    
-    #RX_BYTES=\$(cat /sys/class/net/\$INTERFACE/statistics/rx_bytes)
-    #TX_BYTES=\$(cat /sys/class/net/\$INTERFACE/statistics/tx_bytes)
+    if [ "$(sudo systemctl is-active mosquitto)" = "active" ]; then
 
-    # Construire le message JSON
-    MESSAGE=\$(printf '{\"ip\": \"%s\", \"cpu_load\": \"%s\", \"network_in\": \"%s\", \"network_out\": \"%s\"}' \
-        "\$IP_CLIENT" "\$CPU_LOAD" "\$RX_BYTES" "\$TX_BYTES")
-
-    # Publier les informations sur le topic MQTT
-    mosquitto_pub -h "\$BROKER_IP" -u "\$MQTT_USER" -P "\$MQTT_PASS" -t "\$TOPIC" -m "\$MESSAGE"
-
-    # Afficher un message de succès
-    if [ \$? -eq 0 ]; then
-        echo "Informations envoyées avec succès au broker MQTT."
+        echo_green "Serveur Mosquitto installé et actif."
     else
-        echo "Erreur lors de l'envoi des informations au broker MQTT."
+        echo_red "L'installation de Mosquitto a échoué."
     fi
-
-    # Attendre 10 secondes avant de répéter
-    sleep 4
-done
-EOF
-
-                # Rendre le script exécutable
-                sudo chmod +x /usr/local/bin/client_report.sh
-
-                # Création du service systemd pour démarrer le script au démarrage
-                sudo bash -c "cat > /etc/systemd/system/client_mqtt.service << EOF
-[Unit]
-Description=Service pour envoyer des informations système au broker MQTT
-After=network.target
-
-[Service]
-ExecStart=/usr/local/bin/client_report.sh
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF"
-
-                # Activer et démarrer le service
-                sudo systemctl enable client_mqtt.service
-                sudo systemctl start client_mqtt.service
-
-                echo "Le service MQTT client a été configuré et démarré pour envoyer des informations au broker."
-            else
-                echo "L'installation du client Mosquitto a échoué."
-            fi
-            ;;
-
-        *)
-            echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
-            ;;
-    esac
-    read -p "Appuyez sur [Enter] pour continuer..."
-
-
-
-    ####
-   
-echo "Installation du client Mosquitto / Info Monitoring..."
-
-# Demande des informations de configuration
-read -p "Entrez l'IP du broker Mosquitto : " broker_ip
-read -p "Entrez le nom d'utilisateur MQTT : " mqtt_user
-read -s -p "Entrez le mot de passe MQTT : " mqtt_pass
-echo
-
-# Création du script client pour envoyer les données au broker
-cat << EOF | sudo tee /usr/local/bin/client_report_monitor.sh > /dev/null
-#!/bin/bash
-# Script pour envoyer les informations du client au broker MQTT
-
-BROKER_IP="$broker_ip"
-MQTT_USER="$mqtt_user"
-MQTT_PASS="$mqtt_pass"
-TOPIC="/client/monitoring"
-
-# Récupérer l'IP locale
-    IP_CLIENT=\$(hostname -I | awk '{print \$1}')
-
-# URLs à récupérer
-URLS=(
-    "http://\$IP_CLIENT:1985/api/v1/vhosts/"
-    "http://\$IP_CLIENT:1985/api/v1/client/"
-    "http://\$IP_CLIENT:1985/api/v1/streams/"
-    "http://\$IP_CLIENT:1985/api/v1/publish/"
-    "http://\$IP_CLIENT:1985/api/v1/play/"
-)
-
-while true; do    
-
-    # Initialisation d'une liste JSON vide
-    JSON_LIST="["
-
-    # Boucler sur les URLs et récupérer les JSONs
-    for url in "\${URLS[@]}"; do
-        # Télécharger le JSON
-        json_data=\$(curl -s \$url)
-
-        # Remplacer la valeur de "server" par \$IP_CLIENT
-        json_modified=\$(echo \$json_data | sed "s/\"server\": *\"[^\"]*\"/\"server\": \"\$IP_CLIENT\"/g")
-
-        # Ajouter le JSON modifié à la liste JSON
-        JSON_LIST="\$JSON_LIST\$json_modified,"
-    done
-
-    # Retirer la dernière virgule et fermer la liste JSON
-    JSON_LIST=\$(echo \$JSON_LIST | sed 's/,\$//')
-    JSON_LIST="\$JSON_LIST]"
-
-    # Publier les informations sur le topic MQTT
-    mosquitto_pub -h "\$BROKER_IP" -u "\$MQTT_USER" -P "\$MQTT_PASS" -t "\$TOPIC" -m "\$JSON_LIST"
-
-    # Afficher un message de succès
-    if [ \$? -eq 0 ]; then
-        echo "Informations envoyées avec succès au broker MQTT."
-    else
-        echo "Erreur lors de l'envoi des informations au broker MQTT."
-    fi
-
-    # Attendre 4 secondes avant de répéter
-    sleep 4
-done
-EOF
-
-# Rendre le script exécutable
-sudo chmod +x /usr/local/bin/client_report_monitor.sh
-
-# Création du service systemd pour démarrer le script au démarrage
-sudo bash -c "cat > /etc/systemd/system/client_mqtt_monitor.service << EOF
-[Unit]
-Description=Service pour envoyer des informations système au broker MQTT
-After=network.target
-
-[Service]
-ExecStart=/usr/local/bin/client_report_monitor.sh
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF"
-
-# Activer et démarrer le service
-sudo systemctl enable client_mqtt_monitor.service
-sudo systemctl start client_mqtt_monitor.service
-
-echo "Le service MQTT client a été configuré et démarré pour envoyer des informations au broker."
-
-}
-
-
-
-
-# Fonction pour installer curl
-install_curl() {
-    echo "Installation de curl..."
-    sudo apt install -y curl
-    read -p "Appuyez sur [Enter] pour continuer..."
-}
-
-# Fonction pour installer git
-install_git() {
-    echo "Installation de git..."
-    sudo apt install -y git
-    read -p "Appuyez sur [Enter] pour continuer..."
-}
-
-# Fonction pour installer Docker
-install_docker() {
-    echo "Installation de Docker..."
     
+    
+    
+    sleep 5
+}
+
+# Fonction commune : Installation de Mosquitto
+function installation_Docker() {
+    echo "Installation de Docker en cours..."
     # Désinstallation des anciennes versions
+    sleep 2
+
     echo "Désinstallation des anciennes versions de Docker..."
     for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
         sudo apt-get remove $pkg
@@ -528,131 +119,286 @@ install_docker() {
 
     # Vérification de l'installation
     echo "Vérification de l'installation de Docker..."
+    
+    echo_green "#############################################"
+    echo_green "#                                           #"
+    echo_green "#           Installation Docker OK          #"
+    echo_green "#                                           #"
+    echo_green "#############################################"
+
+
     if sudo docker run hello-world; then
-        echo "Docker a été installé avec succès."
+        echo_green "Docker a été installé avec succès."
     else
-        echo "L'installation de Docker a échoué."
+        echo_red "L'installation de Docker a échoué."
     fi
-    read -p "Appuyez sur [Enter] pour continuer..."
+       
+    sleep 5
 }
 
-# Fonction pour installer et configurer SRS
-install_srs() {
-    if command -v docker &> /dev/null; then
-        echo "Installation de SRS via Docker..."
-        
-        # Créer un script de démarrage pour SRS
-        echo "Création d'un script de démarrage pour SRS..."
-        sudo bash -c 'cat > /usr/local/bin/start-srs.sh << EOF
-#!/bin/bash
-docker run --rm -d --name srs -p 1935:1935 -p 1985:1985 -p 8080:8080 -v /usr/local/etc/srs:/usr/local/etc/srs ossrs/srs
-EOF'
-        
-        # Rendre le script exécutable
-        sudo chmod +x /usr/local/bin/start-srs.sh
+function installation_srs() {    
+    echo "Démarrage de l'installation [SRS Real-Time Stream] sur le Client..."
+    sleep 2
 
-        # Créer un fichier de service systemd pour SRS
-        echo "Création d'un fichier de service systemd pour SRS..."
-        sudo bash -c 'cat > /etc/systemd/system/srs.service << EOF
-[Unit]
-Description=SRS Media Server
-After=network.target
+    # Copie du fichier client_report.sh dans /usr/local/bin
+    echo "Copie du fichier start-srs.sh vers /usr/local/bin..."
+    sudo cp start-srs.sh /usr/local/bin/start-srs.sh
 
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/start-srs.sh
-Restart=always
-User=root
+    # Rendre le script exécutable
+    sudo chmod +x /usr/local/bin/start-srs.sh
 
-[Install]
-WantedBy=multi-user.target
-EOF'
+    # Copie du fichier srs.service dans /usr/local/bin
+    echo "Copie du fichier srs.service vers /etc/systemd/system/..."
+    sudo cp srs.service /etc/systemd/system/srs.service
 
-        # Recharger les configurations de systemd
-        echo "Rechargement des configurations de systemd..."
-        sudo systemctl daemon-reload
+    # Activer et démarrer le service
+    echo "Activation et démarrage du service srs.service..."
+    sudo systemctl enable srs.service
+    sudo systemctl start srs.service
+    
 
-        # Démarrer le service SRS
-        echo "Démarrage du service SRS..."
-        sudo systemctl start srs
+    echo_green "#######################################################"
+    echo_green "#                                                     #"
+    echo_green "#          Configuration de [SRS] terminée.           #"
+    echo_green "#                                                     #"
+    echo_green "#######################################################"
+    echo
 
-        # Activer le service pour qu'il démarre au démarrage
-        echo "Activation du service SRS pour démarrer au démarrage..."
-        sudo systemctl enable srs
 
-        echo "SRS est maintenant en cours d'exécution et sera démarré automatiquement au prochain redémarrage."
+    sleep 5    
+}
+
+# Fonction commune : Installation de Nginx
+function installation_nginx() {
+    echo "Installation de Ngin en cours..."
+    sudo apt install -y nginx
+    echo_green "#############################################"
+    echo_green "#                                           #"
+    echo_green "#       Installation Nginx Serveur OK       #"
+    echo_green "#                                           #"
+    echo_green "#############################################"
+    echo "Demarage de Nginx en cours..."
+    sleep 1
+    # Configurer Nginx pour écouter sur le port 9090
+    sudo bash -c "cat > /etc/nginx/sites-available/clients << EOF
+server {
+    listen 9090;
+    server_name localhost;
+
+    location / {
+        root /var/www/html;
+        index index.html;
+    }
+
+    location /clients.json {
+        alias /var/lib/mosquitto/clients.json;
+        default_type application/json;
+        add_header Access-Control-Allow-Origin *;
+    }
+}
+EOF"
+
+    sleep 1
+
+    # Activer cette nouvelle configuration
+    sudo ln -s /etc/nginx/sites-available/clients /etc/nginx/sites-enabled/
+
+    # Création de l'interface AJAX
+    sudo mkdir -p /var/www/html
+    sudo ln -s /var/lib/mosquitto/clients.json /var/www/html/clients.json
+    # Copie de index.html vers var/www/html/
+    sudo cp index.html /var/www/html/
+
+    sudo systemctl enable nginx                
+    sudo systemctl start nginx
+    sleep 5
+
+    if nginx -v &> /dev/null; then
+        echo_green "Nginx installé avec succès."        
     else
-        echo -e "${RED}Docker doit être installé pour exécuter cette opération.${NC}"
+        echo_red "L'installation de Nginx a échoué."
     fi
-    read -p "Appuyez sur [Enter] pour continuer..."
+    
+    
+    
+    sleep 5
 }
 
-# Fonction pour afficher le menu
-show_menu() {
-    clear
-    echo "======================================="
-    echo "               MENU PRINCIPAL          "
-    echo "======================================="
-    echo "1) les outils nécessaires"
-    echo "6) Installer Nginx (client/Serveur)"
-    echo "2) Installer et configurer Mosquitto (MQTT)"
-    echo "3) Installer Docker"
-    echo "4) Installer SRS (Simple Real-time Server)"
-    echo "5) Quitter"
-    echo "======================================="
-    read -p "Choisissez une option [1-5] : " choice
+# Fonction spécifique : Installation en mode Client
+function installation_client() {
+    echo "Démarrage de l'installation [Reporting] en mode Client..."
+    sleep 2
+
+    echo_green "#############################################"
+    echo_green "#      Entrer les Info IP / USER / PASS  :  #"
+    echo_green "#############################################"
+    echo # Nouvelle ligne pour rendre l'affichage plus propre
+    
+    # Demander les trois questions et stocker les réponses
+    read -p "Quelle est l'IP du Serveur Broker : " serveur_ip
+    read -p "Quel est le nom d'utilisateur : " utilisateur    
+    echo # Nouvelle ligne pour rendre l'affichage plus propre
+
+
+    sudo mosquitto_passwd -c /etc/mosquitto/passwordfile "$utilisateur"
+    sudo bash -c 'grep -qxF "allow_anonymous false" /etc/mosquitto/mosquitto.conf || echo "allow_anonymous false" >> /etc/mosquitto/mosquitto.conf'
+    sudo bash -c 'grep -qxF "password_file /etc/mosquitto/passwordfile" /etc/mosquitto/mosquitto.conf || echo "password_file /etc/mosquitto/passwordfile" >> /etc/mosquitto/mosquitto.conf'
+    read -s -p "Quel est le mot de passe precedant [Encore SVP] : " mot_de_passe
+    
+    sudo systemctl restart mosquitto
+    
+    echo_green "#######################################################"
+    echo_green "#                                                     #"
+    echo_green "#  Configuration de la sécurité du [Broker] terminée. #"
+    echo_green "#                                                     #"
+    echo_green "#######################################################"
+    echo
+    sleep 2
+
+    # Copie du fichier client_report.sh dans /usr/local/bin
+    echo "Copie du fichier client_report.sh vers /usr/local/bin..."
+    sudo cp client_report.sh /usr/local/bin/client_report.sh
+    
+    # Remplacer les termes 'PPP', 'USPAS', et 'PASW' dans le fichier copié
+    echo "Modification des variables dans le fichier /usr/local/bin/client_report.sh..."
+    sudo sed -i "s/PPP/$serveur_ip/g" /usr/local/bin/client_report.sh
+    sudo sed -i "s/USPAS/$utilisateur/g" /usr/local/bin/client_report.sh
+    sudo sed -i "s/PASW/$mot_de_passe/g" /usr/local/bin/client_report.sh
+
+    # Rendre le script exécutable
+    sudo chmod +x /usr/local/bin/client_report.sh
+
+    # Copie du fichier client_mqtt.service dans /etc/systemd/system/
+    echo "Copie du fichier client_mqtt.service vers /etc/systemd/system/..."
+    sudo cp client_mqtt.service /etc/systemd/system/client_mqtt.service
+
+    # Activer et démarrer le service
+    echo "Activation et démarrage du service client_mqtt.service..."
+    sudo systemctl enable client_mqtt.service
+    sudo systemctl start client_mqtt.service
+
+    echo_green "#######################################################"
+    echo_green "#                                                     #"
+    echo_green "#  Installation du mode Client [Reporting] terminée   #"
+    echo_green "#                                                     #"
+    echo_green "#######################################################"
+
+    sleep 5
+
+    echo "Démarrage de l'installation [Monitoring] en mode Client..."    
+
+    # Copie du fichier client_report.sh dans /usr/local/bin
+    echo "Copie du fichier client_report.sh vers /usr/local/bin..."
+    sudo cp client_report_monitor.sh /usr/local/bin/client_report_monitor.sh
+    
+    # Remplacer les termes 'PPP', 'USPAS', et 'PASW' dans le fichier copié
+    echo "Modification des variables dans le fichier /usr/local/bin/client_report_monitor.sh..."
+    sudo sed -i "s/PPP/$serveur_ip/g" /usr/local/bin/client_report_monitor.sh
+    sudo sed -i "s/USPAS/$utilisateur/g" /usr/local/bin/client_report_monitor.sh
+    sudo sed -i "s/PASW/$mot_de_passe/g" /usr/local/bin/client_report_monitor.sh
+
+    # Rendre le script exécutable
+    sudo chmod +x /usr/local/bin/client_report_monitor.sh
+
+    # Copie du fichier client_mqtt.service dans /etc/systemd/system/
+    echo "Copie du fichier client_mqtt.service vers /etc/systemd/system/..."
+    sudo cp client_mqtt_monitor.service /etc/systemd/system/client_mqtt_monitor.service
+
+    # Activer et démarrer le service
+    echo "Activation et démarrage du service client_mqtt.service..."
+    sudo systemctl enable client_mqtt_monitor.service
+    sudo systemctl start client_mqtt_monitor.service
+
+    echo_green "#######################################################"
+    echo_green "#                                                     #"
+    echo_green "#  Installation du mode Client [Monitoring] terminée  #"
+    echo_green "#                                                     #"
+    echo_green "#######################################################"
+
+    sleep 5
 }
 
-# Boucle principale du script
-while true; do
-    show_menu
-    case $choice in
-        1)
-            clear
-            echo "Que souhaitez-vous faire ?"
-            echo "1) Installer tous les outils nécessaires"
-            echo "2) Vérifier les outils nécessaires"
-            read -p "Entrez le numéro de votre choix : " tool_choice
+# Fonction spécifique : Installation en mode Serveur
+function installation_serveur() {
 
-            case $tool_choice in
-                1)
-                    install_tools
-                    ;;
-                2)
-                    echo "Vérification des outils nécessaires..."
-                    echo -e "1) unzip : $(check_installed unzip)"
-                    echo -e "2) automake : $(check_installed automake)"
-                    echo -e "3) tclsh : $(check_installed tclsh)"
-                    echo -e "4) cmake : $(check_installed cmake)"
-                    echo -e "5) pkg-config : $(check_installed pkg-config)"
-                    echo -e "6) nginx : $(check_installed nginx)"
-                    echo -e "7) curl : $(check_installed curl)"
-                    echo -e "8) git : $(check_installed git)"
-                    read -p "Appuyez sur [Enter] pour continuer..."
-                    ;;
-                *)
-                    echo "Choix invalide. Veuillez relancer et sélectionner un numéro valide."
-                    ;;
-            esac
-            ;;
-        2)
-            install_mosquitto
-            ;;
-        3)
-            install_docker
-            ;;
-        4)
-            install_srs
-            ;;
-        5)
-            echo "Quitter le script."
-            exit 0
-            ;;
-        6)
-            install_nginx
-            ;;
-        *)
-            echo "Option invalide. Veuillez choisir une option entre 1 et 5."
-            ;;
-    esac
-done
+    echo "Démarrage de l'installation de la securité Brocker..."
+
+    echo "Démarrage de l'installation [listener] en mode Serveur..."
+
+    # Demander les trois questions et stocker les réponses
+    read -p "Quelle est l'IP du Serveur Broker : " serveur_ip
+    read -p "Quel est le nom d'utilisateur : " utilisateur
+    echo # Nouvelle ligne pour rendre l'affichage plus propre
+
+    sudo mosquitto_passwd -c /etc/mosquitto/passwordfile "$utilisateur"
+    sudo bash -c 'grep -qxF "allow_anonymous false" /etc/mosquitto/mosquitto.conf || echo "allow_anonymous false" >> /etc/mosquitto/mosquitto.conf'
+    sudo bash -c 'grep -qxF "password_file /etc/mosquitto/passwordfile" /etc/mosquitto/mosquitto.conf || echo "password_file /etc/mosquitto/passwordfile" >> /etc/mosquitto/mosquitto.conf'
+    read -s -p "Quel est le mot de passe precedant [Encore SVP] : " mot_de_passe
+    
+    sudo systemctl restart mosquitto
+
+    echo_green "#######################################################"
+    echo_green "#                                                     #"
+    echo_green "#  Configuration de la sécurité du [Broker] terminée. #"
+    echo_green "#                                                     #"
+    echo_green "#######################################################"
+    echo
+    sleep 2
+
+    # Copie du fichier client_report.sh dans /usr/local/bin
+    echo "Copie du fichier mqtt_server_listener.sh vers /usr/local/bin..."
+    sudo cp mqtt_server_listener.sh /usr/local/bin/mqtt_server_listener.sh
+    
+    # Remplacer les termes 'PPP', 'USPAS', et 'PASW' dans le fichier copié
+    echo "Modification des variables dans le fichier /usr/local/bin/mqtt_server_listener.sh..."
+    sudo sed -i "s/PPP/$serveur_ip/g" /usr/local/bin/mqtt_server_listener.sh
+    sudo sed -i "s/USPAS/$utilisateur/g" /usr/local/bin/mqtt_server_listener.sh
+    sudo sed -i "s/PASW/$mot_de_passe/g" /usr/local/bin/mqtt_server_listener.sh
+
+    # Rendre le script exécutable
+    sudo chmod +x /usr/local/bin/mqtt_server_listener.sh
+
+    # Copie du fichier client_mqtt.service dans /etc/systemd/system/
+    echo "Copie du fichier client_mqtt.service vers /etc/systemd/system/..."
+    sudo cp mqtt_server_listener.service /etc/systemd/system/mqtt_server_listener.service
+
+    # Activer et démarrer le service
+    echo "Activation et démarrage du service mqtt_server_listener.service..."
+    sudo systemctl enable mqtt_server_listener.service
+    sudo systemctl start mqtt_server_listener.service
+
+    echo_green "#######################################################"
+    echo_green "#                                                     #"
+    echo_green "#  Installation du mode Serveur [Listener] terminée   #"
+    echo_green "#                                                     #"
+    echo_green "#######################################################"
+
+    sleep 5
+
+}
+
+# Exécution des étapes en fonction du choix
+case $choix in
+    1)
+        mise_a_jour_systeme
+        installation_dependances
+        installation_mosquitto
+        installation_client
+        installation_Docker
+        installation_srs
+        ;;
+    2)
+        mise_a_jour_systeme
+        installation_dependances
+        installation_mosquitto
+        installation_serveur
+        installation_nginx
+        ;;
+    q)
+        echo "Installation annulée. À bientôt!"
+        exit 0
+        ;;
+    *)
+        echo "Choix invalide. Veuillez exécuter à nouveau le script."
+        ;;
+esac

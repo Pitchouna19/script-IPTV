@@ -205,6 +205,7 @@ EOF"
 
     # Création de l'interface AJAX
     sudo mkdir -p /var/www/html
+    sudo bash -c 'echo "[]" > /var/www/html/clients.json'
     sudo ln -s /var/lib/mosquitto/clients.json /var/www/html/clients.json
     # Copie de index.html vers var/www/html/
     sudo cp index.html /var/www/html/

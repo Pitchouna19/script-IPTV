@@ -17,14 +17,13 @@ URLS=(
 )
 
 while true; do    
-
     # Initialisation d'une liste JSON vide
     JSON_LIST="["
 
     # Boucler sur les URLs et récupérer les JSONs
     for url in "${URLS[@]}"; do
         # Télécharger le JSON
-        json_data=$(curl -s $url)
+        json_data=$(curl -s "$url")
 
         # Vérifier si le JSON n'est pas vide
         if [[ -n "$json_data" && "$json_data" != "[]" ]]; then
@@ -42,6 +41,24 @@ while true; do
 
     # Si JSON_LIST est vide (juste "[]"), ne pas envoyer
     if [ "$JSON_LIST" != "[]" ]; then
+        # Fusionner les données par serveur à l'aide de jq
+        JSON_LIST=$(echo "$JSON_LIST" | jq '
+            reduce .[] as $entry (
+                {};
+                .[$entry.server] += {
+                    vhosts: ((.[$entry.server].vhosts // []) + ($entry.vhosts // [])) | unique,
+                    clients: ((.[$entry.server].clients // []) + ($entry.clients // [])) | unique,
+                    streams: ((.[$entry.server].streams // []) + ($entry.streams // [])) | unique
+                }
+            )
+        ')
+
+        # Vérifier si la commande jq a réussi
+        if [ $? -ne 0 ]; then
+            echo "Erreur lors du traitement JSON avec jq."
+            exit 1
+        fi
+
         # Publier les informations sur le topic MQTT
         mosquitto_pub -h "$BROKER_IP" -u "$MQTT_USER" -P "$MQTT_PASS" -t "$TOPIC" -m "$JSON_LIST"
 

@@ -14,21 +14,26 @@ sudo chmod 666 $JSON_FILE  # S'assurer que le fichier est accessible en écritur
 update_or_add_client() {
     local message="$1"
 
-    # Extraire le serveur (IP) du message reçu
-    server_ip=$(echo "$message" | jq -r '.[0].server')
+    # Extraire l'adresse IP du message reçu (la clé de l'objet)
+    server_ip=$(echo "$message" | jq -r 'keys[0]')  # Utiliser keys[0] pour obtenir la clé de l'objet
 
     # Charger l'actuel contenu JSON du fichier
     current_json=$(cat $JSON_FILE)
 
+    # Extraire les données du serveur du message
+    server_data=$(echo "$message" | jq -r '.[keys[0]]')  # Obtenir les données associées à l'IP
+
     # Vérifier si le serveur IP existe déjà dans le fichier JSON
     if echo "$current_json" | jq -e --arg server_ip "$server_ip" '.[] | select(.server == $server_ip)' > /dev/null; then
         # Si le serveur existe, mettre à jour les informations correspondantes
-        updated_json=$(echo "$current_json" | jq --argjson new_data "$message" --arg server_ip "$server_ip" '
-            map(if .server == $server_ip then . = ($new_data | .[0]) else . end)
+        updated_json=$(echo "$current_json" | jq --arg server_ip "$server_ip" --argjson new_data "$server_data" '
+            map(if .server == $server_ip then . = { server: $server_ip } + $new_data else . end)
         ')
     else
         # Si le serveur n'existe pas, ajouter les nouvelles données à la liste
-        updated_json=$(echo "$current_json" | jq --argjson new_data "$message" '. + $new_data')
+        updated_json=$(echo "$current_json" | jq --arg server_ip "$server_ip" --argjson new_data "$server_data" '
+            . + [{ server: $server_ip } + $new_data]
+        ')
     fi
 
     # Écrire le JSON mis à jour dans le fichier

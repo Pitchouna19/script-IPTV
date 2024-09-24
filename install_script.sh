@@ -394,7 +394,7 @@ function installation_serveur() {
     
     # Remplacer les termes 'PPP', 'USPAS', et 'PASW' dans le fichier copié
     echo "Modification des variables dans le fichier /usr/local/bin/mqtt_server_listener_monitoring.sh..."
-    sudo sed -i "s/PPP/$serveur_ip/g" /usr/local/bin/mqtt_server_listener_monitoring.sh.sh
+    sudo sed -i "s/PPP/$serveur_ip/g" /usr/local/bin/mqtt_server_listener_monitoring.sh
     sudo sed -i "s/USPAS/$utilisateur/g" /usr/local/bin/mqtt_server_listener_monitoring.sh
     sudo sed -i "s/PASW/$mot_de_passe/g" /usr/local/bin/mqtt_server_listener_monitoring.sh
 

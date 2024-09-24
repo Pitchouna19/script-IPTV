@@ -42,7 +42,7 @@ while true; do
     # Si JSON_LIST est vide (juste "[]"), ne pas envoyer
     if [ "$JSON_LIST" != "[]" ]; then
         # Fusionner les données par serveur à l'aide de jq
-        JSON_LIST=$(echo "$JSON_LIST" | jq '
+        JSON_LIST=$(echo "$JSON_LIST" | jq -c '
             reduce .[] as $entry (
                 {};
                 .[$entry.server] += {

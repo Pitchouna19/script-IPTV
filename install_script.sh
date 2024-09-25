@@ -47,7 +47,7 @@ function mise_a_jour_systeme() {
 # Fonction commune : Installation des dépendances
 function installation_dependances() {
     echo "Installation des dépendances en cours..."
-    sudo apt install -y unzip curl git jq sysstat bc sed
+    sudo apt install -y unzip curl git jq sysstat bc sed ffmpeg
     echo_green "#############################################"
     echo_green "#                                           #"
     echo_green "#      Installation des dépendances OK      #"

@@ -1,267 +1,287 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clients MQTT</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-
-        .top-bar {
-            background-color: #333;
-            color: white;
-            padding: 10px;
-            text-align: center;
-        }
-
-        .top-bar button {
-            background-color: #444;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            margin: 5px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-
-        .top-bar button.active {
-            background-color: #007bff;
-        }
-
-        .top-bar button:hover {
-            background-color: #555;
-        }
-
-        .content {
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .client-container {
-            background-color: #f9f9f9;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .progress-bar {
-            width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-            overflow: hidden;
-            margin: 5px 0;
-        }
-
-        .progress-bar div {
-            height: 20px;
-            text-align: center;
-            color: white;
-            line-height: 20px;
-            border-radius: 5px;
-        }
-
-        .progress-bar.cpu-load div {
-            background-color: #007bff;
-        }
-
-        .progress-bar.network-in div {
-            background-color: #dc3545;
-        }
-
-        .progress-bar.network-out div {
-            background-color: #fd7e14;
-        }
-
-        .progress-with-label {
-            display: flex;
-            align-items: center;
-            margin: 5px 0;
-            justify-content: space-between;
-        }
-
-        .progress-with-label .label {
-            width: 150px;
-            white-space: nowrap;
-            font-weight: bold;
-        }
-
-        .progress-with-label .progress-bar {
-            flex-grow: 1;
-            margin-left: 10px;
-        }
-
-        .progress-container {
-            flex: 2;
-        }
-
-        .info-client-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(2, 1fr);
-            gap: 10px;
-            padding: 10px;
-            flex: 1;
-        }
-
-        .lcd-display {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #000;
-            color: #0f0;
-            height: 60px;
-            font-size: 20px;
-            font-family: "Courier New", Courier, monospace;
-            border-radius: 5px;
-        }
-
-        .info-client-container button {
-            width: 100%;
-            padding: 10px;
-            background-color: #f1f1f1;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: center;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-    <div class="top-bar">
-        <button id="dashboard-btn" class="active" onclick="showPage('dashboard')">Dashboard</button>
-        <button id="setting1-btn" onclick="showPage('setting1')">Setting 1</button>
-        <button id="setting2-btn" onclick="showPage('setting2')">Setting 2</button>
-    </div>
-
-    <div class="content">
-        <div id="dashboard">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Clients MQTT</title>
+      <style>
+         body {
+         font-family: Arial, sans-serif;
+         margin: 0;
+         padding: 0;
+         }
+         .top-bar {
+         background-color: #333;
+         color: white;
+         padding: 10px;
+         text-align: center;
+         }
+         .top-bar button {
+         background-color: #444;
+         color: white;
+         border: none;
+         padding: 10px 20px;
+         margin: 5px;
+         cursor: pointer;
+         border-radius: 5px;
+         }
+         .top-bar button.active {
+         background-color: #007bff;
+         }
+         .top-bar button:hover {
+         background-color: #555;
+         }
+         .content {
+         padding: 20px;
+         display: flex;
+         flex-direction: column;
+         }
+         .client-container {
+         background-color: #f9f9f9;
+         padding: 15px;
+         border-radius: 10px;
+         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+         margin-bottom: 20px;
+         display: flex;
+         flex-direction: row;
+         justify-content: space-between;
+         align-items: flex-start;
+         }
+         .progress-bar {
+         width: 100%;
+         background-color: #e0e0e0;
+         border-radius: 5px;
+         overflow: hidden;
+         margin: 5px 0;
+         }
+         .progress-bar div {
+         height: 20px;
+         text-align: center;
+         color: white;
+         line-height: 20px;
+         border-radius: 5px;
+         }
+         .progress-bar.cpu-load div {
+         background-color: #007bff;
+         }
+         .progress-bar.network-in div {
+         background-color: #dc3545;
+         }
+         .progress-bar.network-out div {
+         background-color: #fd7e14;
+         }
+         .progress-with-label {
+         display: flex;
+         align-items: center;
+         margin: 5px 0;
+         justify-content: space-between;
+         }
+         .progress-with-label .label {
+         width: 150px;
+         white-space: nowrap;
+         font-weight: bold;
+         }
+         .progress-with-label .progress-bar {
+         flex-grow: 1;
+         margin-left: 10px;
+         }
+         .progress-container {
+         flex: 2;
+         }
+         .info-client-container {
+         display: grid;
+         grid-template-columns: repeat(2, 1fr);
+         grid-template-rows: repeat(2, 1fr);
+         gap: 10px;
+         padding: 10px;
+         flex: 1;
+         }
+         .lcd-display {
+         display: flex;
+         justify-content: center;
+         align-items: center;
+         background-color: #000;
+         color: #0f0;
+         height: 60px;
+         font-size: 20px;
+         font-family: "Courier New", Courier, monospace;
+         border-radius: 5px;
+         }
+         .info-client-container button {
+         width: 100%;
+         padding: 10px;
+         background-color: #f1f1f1;
+         border: 1px solid #ccc;
+         border-radius: 5px;
+         cursor: pointer;
+         text-align: center;
+         font-weight: bold;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="top-bar">
+         <button id="dashboard-btn" class="active" onclick="showPage('dashboard')">Dashboard</button>
+         <button id="setting1-btn" onclick="showPage('setting1')">Setting 1</button>
+         <button id="setting2-btn" onclick="showPage('setting2')">Setting 2</button>
+      </div>
+      <div class="content">
+         <div id="dashboard">
             <div id="clientData">
-                <p>Chargement des données...</p>
+               <p>Chargement des données...</p>
             </div>
-        </div>
-    </div>
+         </div>
+      </div>
+      <script>
+         // Définir les maximums initiaux pour Trafic IN et Trafic OUT
+         let maxTrafficIn = 2; // en Mo
+         let maxTrafficOut = 2; // en Mo
+         
+         // Fonction pour ajuster les maximums en fonction des valeurs de trafic
+         function adjustMaxTraffic(currentTraffic, maxTraffic) {
+             while (currentTraffic > maxTraffic) {
+                 maxTraffic *= 2;
+             }
+             while (currentTraffic < maxTraffic / 2 && maxTraffic > 2) {
+                 maxTraffic /= 2;
+             }
+             return maxTraffic;
+         }
+         
+         // Déclaration de la variable globale pour stocker les données de monitoring
+    let monitoringData = {};
 
-    <script>
-        // Définir les maximums initiaux pour Trafic IN et Trafic OUT
-        let maxTrafficIn = 2; // en Mo
-        let maxTrafficOut = 2; // en Mo
+    // Fonction pour charger les données de monitoring.json via AJAX (fetch)
+    function loadMonitoringData() {
+        console.log('Chargement des données de monitoring...');
+        const url = '/monitoring.json?' + new Date().getTime(); // Évite la mise en cache
+        fetch(url) // Chemin vers le fichier JSON de monitoring
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Réponse du réseau non valide');
+                }
+                return response.json(); // Convertir la réponse en JSON
+            })
+            .then(servers => {
+                console.log('Données de monitoring chargées:', servers); // Message de débogage
 
-        // Fonction pour ajuster les maximums en fonction des valeurs de trafic
-        function adjustMaxTraffic(currentTraffic, maxTraffic) {
-            while (currentTraffic > maxTraffic) {
-                maxTraffic *= 2;
-            }
-            while (currentTraffic < maxTraffic / 2 && maxTraffic > 2) {
-                maxTraffic /= 2;
-            }
-            return maxTraffic;
-        }
-
-        // Fonction pour charger les données du fichier JSON via AJAX (fetch)
-        function loadClientData() {
-            console.log('Chargement des données...'); // Message de débogage
-            const url = '/clients.json?' + new Date().getTime(); // Ajoute un paramètre de temps pour éviter le cache
-            fetch(url)  // Chemin vers le fichier JSON
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Réponse du réseau non valide');
+                // Parcourir chaque serveur et récupérer les données associées
+                servers.forEach(server => {
+                    const serverIp = server.server;
+                    if (server.vhosts.length > 0) {
+                        const vhost = server.vhosts[0]; // On prend le premier élément
+                        monitoringData[serverIp] = {
+                            con_clients: vhost.clients,
+                            con_streams: vhost.streams
+                        };
+                    } else {
+                        monitoringData[serverIp] = { con_clients: 0, con_streams: 0 };
                     }
-                    return response.json();  // Convertir la réponse en JSON
-                })
-                .then(clients => {
-                    console.log('Données chargées:', clients); // Message de débogage
-                    let output = '<h2>Liste des Clients MQTT</h2>';
-                    clients.forEach(client => {
-                        // Ajuster les maximums en fonction des valeurs de trafic
-                        maxTrafficIn = adjustMaxTraffic(client.network_in, maxTrafficIn);
-                        maxTrafficOut = adjustMaxTraffic(client.network_out, maxTrafficOut);
-
-                        // Calculer les pourcentages pour Trafic IN et Trafic OUT
-                        const inPercentage = (client.network_in / maxTrafficIn) * 100;
-                        const outPercentage = (client.network_out / maxTrafficOut) * 100;
-
-                        output += `
-                        <div class="client-container">
-                            <div class="progress-container">
-                                <p><strong>IP:</strong> ${client.ip}</p>
-
-                                <!-- Charge CPU -->
-                                <div class="progress-with-label">
-                                    <div class="label">Charge CPU:</div>
-                                    <div class="progress-bar cpu-load">
-                                        <div style="width: ${client.cpu_load}%;">${client.cpu_load}%</div>
-                                    </div>
-                                </div>
-
-                                <!-- Trafic IN -->
-                                <div class="progress-with-label">
-                                    <div class="label">Trafic IN:</div>
-                                    <div class="progress-bar network-in">
-                                        <div style="width: ${inPercentage}%;">${client.network_in} kB/s</div>
-                                    </div>
-                                </div>
-
-                                <!-- Trafic OUT -->
-                                <div class="progress-with-label">
-                                    <div class="label">Trafic OUT:</div>
-                                    <div class="progress-bar network-out">
-                                        <div style="width: ${outPercentage}%;">${client.network_out} kB/s</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="info-client-container">
-                                <!-- Les deux écrans LCD -->
-                                <div class="lcd-display">123</div>
-                                <div class="lcd-display">456</div>
-                                
-                                <!-- Deux boutons avec les labels -->
-                                <button>détail +</button>
-                                <button>détail +</button>
-                            </div>
-                        </div>`;
-                    });
-                    document.getElementById('clientData').innerHTML = output;
-                })
-                .catch(error => {
-                    console.error('Erreur lors du chargement des données:', error);
-                    document.getElementById('clientData').innerHTML = '<p>Erreur lors du chargement des données.</p>';
                 });
-        }
-
-        // Changer de page (tabs)
-        function showPage(page) {
-            document.getElementById('dashboard').classList.add('hidden');
-            document.getElementById('setting1').classList.add('hidden');
-            document.getElementById('setting2').classList.add('hidden');
-
-            document.getElementById(page).classList.remove('hidden');
-
-            document.querySelectorAll('.top-bar button').forEach(function (btn) {
-                btn.classList.remove('active');
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement des données de monitoring:', error);
             });
-            document.getElementById(page + '-btn').classList.add('active');
-        }
+    }
 
-        // Mettre à jour les données toutes les 4 secondes
-        setInterval(loadClientData, 4000);
+    // Fonction pour charger les données des clients via AJAX (fetch)
+    function loadClientData() {
+        console.log('Chargement des données des clients...');
+        const url = '/clients.json?' + new Date().getTime(); // Évite la mise en cache
+        fetch(url) // Chemin vers le fichier JSON des clients
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Réponse du réseau non valide');
+                }
+                return response.json(); // Convertir la réponse en JSON
+            })
+            .then(clients => {
+                console.log('Données chargées:', clients); // Message de débogage
+                let output = '<h2>Liste des Clients MQTT</h2>';
+                clients.forEach(client => {
+                    // Ajuster les maximums en fonction des valeurs de trafic
+                    maxTrafficIn = adjustMaxTraffic(client.network_in, maxTrafficIn);
+                    maxTrafficOut = adjustMaxTraffic(client.network_out, maxTrafficOut);
 
-        // Charger les données lorsque la page est chargée
-        window.onload = function () {
-            loadClientData();
-            showPage('dashboard');
-        };
-    </script>
-</body>
+                    // Calculer les pourcentages pour Trafic IN et Trafic OUT
+                    const inPercentage = (client.network_in / maxTrafficIn) * 100;
+                    const outPercentage = (client.network_out / maxTrafficOut) * 100;
+
+                    // Récupérer les valeurs de monitoringData pour l'IP du client
+                    const monitoringInfo = monitoringData[client.ip] || { con_streams: 0, con_clients: 0 };
+
+                    output += `
+                    <div class="client-container">
+                        <div class="progress-container">
+                            <p><strong>IP:</strong> ${client.ip}</p>
+
+                            <!-- Charge CPU -->
+                            <div class="progress-with-label">
+                                <div class="label">Charge CPU:</div>
+                                <div class="progress-bar cpu-load">
+                                    <div style="width: ${client.cpu_load}%;">${client.cpu_load}%</div>
+                                </div>
+                            </div>
+
+                            <!-- Trafic IN -->
+                            <div class="progress-with-label">
+                                <div class="label">Trafic IN:</div>
+                                <div class="progress-bar network-in">
+                                    <div style="width: ${inPercentage}%;">${client.network_in} kB/s</div>
+                                </div>
+                            </div>
+
+                            <!-- Trafic OUT -->
+                            <div class="progress-with-label">
+                                <div class="label">Trafic OUT:</div>
+                                <div class="progress-bar network-out">
+                                    <div style="width: ${outPercentage}%;">${client.network_out} kB/s</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-client-container">
+                            <!-- Les deux écrans LCD -->
+                            <div class="lcd-display">Streams: ${monitoringInfo.con_streams}</div>
+                            <div class="lcd-display">Clients: ${monitoringInfo.con_clients}</div>
+                            <button>Action 1</button>
+                            <button>Action 2</button>
+                        </div>
+                    </div>`;
+                });
+                document.getElementById('clientData').innerHTML = output; // Afficher le contenu généré
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement des données:', error);
+            });
+    }
+         
+         // Changer de page (tabs)
+         function showPage(page) {
+             document.getElementById('dashboard').classList.add('hidden');
+             document.getElementById('setting1').classList.add('hidden');
+             document.getElementById('setting2').classList.add('hidden');
+         
+             document.getElementById(page).classList.remove('hidden');
+         
+             document.querySelectorAll('.top-bar button').forEach(function (btn) {
+                 btn.classList.remove('active');
+             });
+             document.getElementById(page + '-btn').classList.add('active');
+         }
+         
+         // Mettre à jour les données toutes les 4 secondes
+         setInterval(() => {
+         loadMonitoringData();
+         loadClientData(); // Ajouter cet appel pour rafraîchir les données de monitoring
+         }, 4000);
+         
+         // Charger les données lorsque la page est chargée
+         window.onload = function () {
+             loadMonitoringData();
+             loadClientData();   // Charger les données de monitoring
+             showPage('dashboard');
+         };
+      </script>
+   </body>
 </html>

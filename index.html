@@ -178,7 +178,7 @@
                         if (server.vhosts.length > 0) {
                             const vhost = server.vhosts[0];
                             monitoringData[serverIp] = {
-                                con_clients: vhost.clients,
+                                con_clients: vhost.clients -1,
                                 con_streams: vhost.streams
                             };
                         } else {
@@ -243,8 +243,8 @@
                                 </div>
 
                                 <div class="info-client-container">
-                                    <button>Clients Connectés: ${monitoringInfo.con_clients}</button>
                                     <button>Streams: ${monitoringInfo.con_streams}</button>
+                                    <button>Clients Connectés: ${Math.max(0, monitoringInfo.con_clients)}</button>                                    
                                 </div>
                             </div>
                         </div>`;

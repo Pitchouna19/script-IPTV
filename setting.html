@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conteneur avec Combobox et Champ d'URL</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            box-sizing: border-box;
+            position: relative;
+        }
+        select, input[type="text"] {
+            padding: 5px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .spacer {
+            flex-grow: 1;
+        }
+        label {
+            margin-right: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+        button {
+            padding: 5px 15px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 4px;
+            color: #ffffff;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Combobox pour choisir le type -->
+    <select>
+        <option value="vavoo">VAVOO</option>
+        <option value="xtream">XTREAM</option>
+    </select>
+
+    <!-- Champ de texte pour l'URL -->
+    <input type="text" placeholder="Entrez l'URL ici..." />
+
+    <!-- Spacer pour pousser le contenu à droite -->
+    <div class="spacer"></div>
+
+    <!-- Label indiquant la dernière mise à jour -->
+    <label id="last-update">Dernière mise à jour : 01/09/2024</label>
+
+    <!-- Bouton UPDATE -->
+    <button id="update-button">UPDATE</button>
+</div>
+
+</body>
+</html>

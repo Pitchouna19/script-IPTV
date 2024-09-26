@@ -438,6 +438,7 @@ case $choix in
         installation_dependances
         installation_mosquitto
         installation_serveur
+        installation_Docker
         installation_nginx
         ;;
     q)

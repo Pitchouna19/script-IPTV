@@ -60,7 +60,9 @@ function installation_node() {
     sleep 5
     cd
     echo "Suite..."
-    #node /var/www/html/server.js
+    echo "Copy du fichier server.js dans /var/www/html/"
+    sudo cp server.js /var/www/html/
+    sleep 3
     echo "Installation du Service NodeJs au demarage..."
     sudo cp node.service /etc/systemd/system/node.service
     sleep 2

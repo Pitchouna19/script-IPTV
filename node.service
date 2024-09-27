@@ -3,7 +3,7 @@ Description=Service pour demarer NodeJs
 After=network.target
 
 [Service]
-ExecStart=node /var/www/html/server.js
+ExecStart=/usr/bin/node /var/www/html/server.js
 Restart=always
 
 [Install]

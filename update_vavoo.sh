@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# Vérifier si un argument a été fourni
-if [ -z "$1" ]; then
-  echo "Erreur : aucune URL fournie."
-  echo "Usage: $0 <URL>"
+# Télécharger le fichier JSON directement depuis l'URL
+curl -o /var/www/html/channel.json https://vavoo.to/channels
+
+# Vérifier si le téléchargement a réussi
+if [ $? -eq 0 ]; then
+  echo "Téléchargement réussi : /var/www/html/channel.json"
+else
+  echo "Erreur : échec du téléchargement."
   exit 1
 fi
-
-# Télécharger le fichier JSON et le sauvegarder
-curl -o /var/www/html/channel.json "$1"

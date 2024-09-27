@@ -63,22 +63,27 @@
 </div>
 
 <script>
+    console.log('Script JavaScript chargé'); // Debug: script chargé
+
     document.getElementById('update-button').addEventListener('click', () => {
-        fetch('/update', {
+        console.log('Le bouton "UPDATE" a été cliqué.'); // Debug: clic sur le bouton
+        
+        fetch('http://king.iptv.root.sx:9090/update', { // Utiliser l'URL complète
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
         })
         .then(response => {
+            console.log('Requête envoyée, attente de la réponse...'); // Debug: Requête envoyée
+            
             if (response.ok) {
+                console.log('Réponse reçue avec succès:', response); // Debug: Réponse réussie
                 alert('Mise à jour réussie');
             } else {
+                console.error('Erreur lors de la mise à jour:', response); // Debug: Erreur de réponse
                 alert('Erreur lors de la mise à jour');
             }
         })
         .catch(error => {
-            console.error('Erreur :', error);
+            console.error('Erreur lors de l\'envoi de la requête:', error); // Debug: Erreur lors de la requête
             alert('Erreur lors de la mise à jour');
         });
     });

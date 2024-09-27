@@ -45,6 +45,47 @@ function mise_a_jour_systeme() {
 }
 
 # Fonction commune : Installation des dépendances
+function installation_node() {
+    echo "Installation du serveur Node cours..."
+    sudo curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -     
+    sleep 5
+    sudo apt install nodejs
+    sleep 5
+    echo "Installation du serveur Node Express en cours..."
+    cd /var/www/html
+    sudo npm install express
+    sleep 5
+    echo "Installation du serveur Node Cors en cours..."
+    sudo npm install cors
+    sleep 5
+    cd
+    node /var/www/html/server.js
+    sleep 5
+    echo "Installation du Servis NODE au demarage..."
+    sudo cp node.service /etc/systemd/system/node.service
+    sleep 2
+     # Activer et démarrer le service
+    echo "Activation et démarrage du service node.service..."
+    sudo systemctl enable node.service
+    sudo systemctl start node.service
+    
+    
+    if command -v node > /dev/null 2>&1; then
+        echo_green "#############################################"
+        echo_green "#                                           #"
+        echo_green "#      Installation du serveur Node  OK     #"
+        echo_green "#                                           #"
+        echo_green "#############################################"
+    else        
+        echo_red "#############################################"
+        echo_red "#                                           #"
+        echo_red "#      L'installation Node a échoué.        #"
+        echo_red "#                                           #"
+        echo_red "#############################################"
+fi
+}
+
+# Fonction commune : Installation des dépendances
 function installation_dependances() {
     echo "Installation des dépendances en cours..."
     sudo apt install -y unzip curl git jq sysstat bc sed ffmpeg software-properties-common

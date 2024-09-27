@@ -59,9 +59,9 @@ function installation_node() {
     sudo npm install cors
     sleep 5
     cd
-    node /var/www/html/server.js
-    sleep 5
-    echo "Installation du Servis NODE au demarage..."
+    echo "Suite..."
+    #node /var/www/html/server.js
+    echo "Installation du Service NodeJs au demarage..."
     sudo cp node.service /etc/systemd/system/node.service
     sleep 2
      # Activer et démarrer le service

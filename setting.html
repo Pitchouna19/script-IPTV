@@ -1,112 +1,110 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conteneur avec Combobox et Champ d'URL</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-        }
-        .container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px;
-            background-color: #ffffff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            box-sizing: border-box;
-            position: relative;
-        }
-        select, button {
-            padding: 5px;
-            margin-right: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .spacer {
-            flex-grow: 1;
-        }
-        label {
-            margin-right: 10px;
-            font-size: 14px;
-            color: #555;
-        }
-        button {
-            background-color: #007bff;
-            border: none;
-            color: #ffffff;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <select>
-        <option value="vavoo">VAVOO</option>
-        <option value="xtream">XTREAM</option>
-    </select>
-
-    <div class="spacer"></div>
-
-    <label id="last-update">Dernière mise à jour : 01/09/2024</label>
-
-    <button id="update-button">UPDATE</button>
-</div>
-
-<script>
-    console.log('Script JavaScript chargé'); // Debug: script chargé
-
-    document.getElementById('update-button').addEventListener('click', () => {
-        console.log('Le bouton "UPDATE" a été cliqué.'); // Debug: clic sur le bouton
-        
-        fetch('http://king.iptv.root.sx:9090/update', { // Utiliser l'URL complète
-            method: 'POST',
-        })
-        .then(response => {
-            console.log('Requête envoyée, attente de la réponse...'); // Debug: Requête envoyée
-            
-            if (response.ok) {
-                console.log('Réponse reçue avec succès:', response); // Debug: Réponse réussie
-                alert('Mise à jour réussie');
-            } else {
-                console.error('Erreur lors de la mise à jour:', response); // Debug: Erreur de réponse
-                alert('Erreur lors de la mise à jour');
-            }
-        })
-        .catch(error => {
-            console.error('Erreur lors de l\'envoi de la requête:', error); // Debug: Erreur lors de la requête
-            alert('Erreur lors de la mise à jour');
-        });
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-    // Met à jour la dernière date de modification
-    fetch('/last-modified')
-        .then(response => response.json())
-        .then(data => {
-            const label = document.getElementById('last-update');
-            if (data.lastModified) {
-                const date = new Date(data.lastModified);
-                label.textContent = `Dernière mise à jour : ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-            } else {
-                label.textContent = 'Aucune information';
-            }
-        })
-        .catch(error => {
-            console.error('Erreur lors de la récupération de la dernière modification:', error);
-            document.getElementById('last-update').textContent = 'Aucune information';
-        });
-    });
-</script>
-
-</body>
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Conteneur avec Combobox et Champ d'URL</title>
+      <style>
+         body {
+         margin: 0;
+         padding: 0;
+         font-family: Arial, sans-serif;
+         background-color: #f0f0f0;
+         }
+         .container {
+         display: flex;
+         align-items: center;
+         justify-content: space-between;
+         padding: 10px;
+         background-color: #ffffff;
+         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+         width: 100%;
+         box-sizing: border-box;
+         position: relative;
+         }
+         select, button {
+         padding: 5px;
+         margin-right: 10px;
+         border: 1px solid #ccc;
+         border-radius: 4px;
+         }
+         .spacer {
+         flex-grow: 1;
+         }
+         label {
+         margin-right: 10px;
+         font-size: 14px;
+         color: #555;
+         }
+         button {
+         background-color: #007bff;
+         border: none;
+         color: #ffffff;
+         cursor: pointer;
+         }
+         button:hover {
+         background-color: #0056b3;
+         }
+      </style>
+   </head>
+   <body>
+      <div class="container">
+         <select>
+            <option value="vavoo">VAVOO</option>
+            <option value="xtream">XTREAM</option>
+         </select>
+         <div class="spacer"></div>
+         <label id="last-update">Dernière mise à jour : 01/09/2024</label>
+         <button id="update-button">UPDATE</button>
+      </div>
+      <script>
+         console.log('Script JavaScript chargé'); // Debug: script chargé
+         
+         document.getElementById('update-button').addEventListener('click', () => {
+         console.log('Le bouton "UPDATE" a été cliqué.'); // Debug: clic sur le bouton
+         
+         fetch('http://king.iptv.root.sx:9090/update', { // Utiliser l'URL complète
+             method: 'POST',
+         })
+         .then(response => {
+             console.log('Requête envoyée, attente de la réponse...'); // Debug: Requête envoyée
+             
+             if (response.ok) {
+                 console.log('Réponse reçue avec succès:', response); // Debug: Réponse réussie
+                 alert('Mise à jour réussie');
+                 updateLastModified(); // Appeler la fonction de mise à jour
+             } else {
+                 console.error('Erreur lors de la mise à jour:', response); // Debug: Erreur de réponse
+                 alert('Erreur lors de la mise à jour');
+             }
+         })
+         .catch(error => {
+             console.error('Erreur lors de l\'envoi de la requête:', error); // Debug: Erreur lors de la requête
+             alert('Erreur lors de la mise à jour');
+         });
+         });
+         
+         // Fonction pour récupérer la dernière modification
+         function updateLastModified() {
+         fetch('/last-modified')
+             .then(response => response.json())
+             .then(data => {
+                 const label = document.getElementById('last-update');
+                 if (data.lastModified) {
+                     const date = new Date(data.lastModified);
+                     label.textContent = `Dernière mise à jour : ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                 } else {
+                     label.textContent = 'Aucune information';
+                 }
+             })
+             .catch(error => {
+                 console.error('Erreur lors de la récupération de la dernière modification:', error);
+                 document.getElementById('last-update').textContent = 'Aucune information';
+             });
+         }
+         
+         // Charger la dernière modification au chargement de la page
+         document.addEventListener('DOMContentLoaded', updateLastModified);
+      </script>
+   </body>
 </html>

@@ -1,9 +1,9 @@
 [Unit]
-Description=Service pour envoyer des informations système au broker MQTT
+Description=Service pour demarer NodeJs
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/client_report.sh
+ExecStart=node /var/www/html/server.js
 Restart=always
 
 [Install]

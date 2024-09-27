@@ -142,7 +142,7 @@
                <p>Chargement des données...</p>
             </div>
          </div>
-         <div id="setting1" style="display: none;"></div>
+         <iframe id="setting1-iframe" style="display: none; width: 100%; height: 500px; border: none;"></iframe>
          <div id="setting2" style="display: none;"></div>
       </div>
       <script>
@@ -266,28 +266,22 @@
          function showPage(page) {
          const pages = ['dashboard', 'setting1', 'setting2'];
          pages.forEach(p => {
-         document.getElementById(p).style.display = p === page ? 'block' : 'none';
+         if (p === 'setting1') {
+            document.getElementById(`${p}-iframe`).style.display = p === page ? 'block' : 'none';
+         } else {
+            document.getElementById(p).style.display = p === page ? 'block' : 'none';
+         }
          document.getElementById(`${p}-btn`).classList.toggle('active', p === page);
          });
          
          if (page === 'setting1') {
-         // Charge le contenu de setting.html
-         fetch('setting.html')
-             .then(response => {
-                 if (!response.ok) {
-                     throw new Error('Erreur lors du chargement de setting.html');
-                 }
-                 return response.text();
-             })
-             .then(html => {
-                 document.getElementById('setting1').innerHTML = html;
-             })
-             .catch(error => {
-                 console.error('Erreur:', error);
-                 document.getElementById('setting1').innerHTML = '<p>Impossible de charger la page de configuration.</p>';
-             });
+         const iframe = document.getElementById('setting1-iframe');
+         if (!iframe.src) {
+            iframe.src = 'setting.html'; // Charger la page setting.html
          }
          }
+         }
+         
       </script>
    </body>
 </html>

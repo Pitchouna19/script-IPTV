@@ -217,6 +217,7 @@ EOF"
     # Copie de index.html vers var/www/html/
     sudo cp index.html /var/www/html/
     sudo cp setting.html /var/www/html/
+    sudo cp update_vavoo.sh /usr/local/bin/
     
     sudo systemctl enable nginx                
     sudo systemctl start nginx

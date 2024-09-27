@@ -87,6 +87,25 @@
             alert('Erreur lors de la mise à jour');
         });
     });
+
+    document.addEventListener('DOMContentLoaded', () => {
+    // Met à jour la dernière date de modification
+    fetch('/last-modified')
+        .then(response => response.json())
+        .then(data => {
+            const label = document.getElementById('last-update');
+            if (data.lastModified) {
+                const date = new Date(data.lastModified);
+                label.textContent = `Dernière mise à jour : ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+            } else {
+                label.textContent = 'Aucune information';
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors de la récupération de la dernière modification:', error);
+            document.getElementById('last-update').textContent = 'Aucune information';
+        });
+    });
 </script>
 
 </body>

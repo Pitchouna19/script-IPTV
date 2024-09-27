@@ -216,7 +216,8 @@ EOF"
     sudo ln -s /var/lib/mosquitto/monitoring.json /var/www/html/monitoring.json
     # Copie de index.html vers var/www/html/
     sudo cp index.html /var/www/html/
-
+    sudo cp setting.html /var/www/html/
+    
     sudo systemctl enable nginx                
     sudo systemctl start nginx
     sleep 5

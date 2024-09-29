@@ -515,6 +515,7 @@ case $choix in
         installation_serveur
         installation_Docker
         installation_nginx
+        installation_node
         ;;
     q)
         echo "Installation annulée. À bientôt!"

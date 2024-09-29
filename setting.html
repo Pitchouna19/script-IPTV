@@ -3,7 +3,7 @@
    <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Conteneur avec Combobox et Champ d'URL</title>
+      <title>Conteneur avec Label et Flèche</title>
       <style>
          body {
          margin: 0;
@@ -21,15 +21,43 @@
          width: 100%;
          box-sizing: border-box;
          position: relative;
+         margin-bottom: 10px; /* Ajout d'une marge entre les conteneurs */
          }
-         select, button {
-         padding: 5px;
-         margin-right: 10px;
-         border: 1px solid #ccc;
+         .label-button {
+         padding: 5px 10px;
+         background-color: #ccc;
+         border: 1px solid #999;
          border-radius: 4px;
+         color: #333;
+         cursor: pointer;
+         display: inline-block;
+         text-align: center;
+         }
+         .label-button:hover {
+         background-color: #bbb;
          }
          .spacer {
          flex-grow: 1;
+         position: relative;
+         height: 1px;
+         background-color: transparent;
+         }
+         .arrow {
+         position: absolute;
+         top: -5px;
+         left: 0;
+         right: 0;
+         height: 0;
+         border-top: 2px solid #555;
+         }
+         .arrow::after {
+         content: '';
+         position: absolute;
+         top: -5px;
+         right: 0;
+         border-width: 5px;
+         border-style: solid;
+         border-color: transparent transparent transparent #555;
          }
          label {
          margin-right: 10px;
@@ -41,22 +69,50 @@
          border: none;
          color: #ffffff;
          cursor: pointer;
+         padding: 5px;
+         border-radius: 4px;
          }
          button:hover {
          background-color: #0056b3;
          }
+         .settings-button {
+         background-color: #f0f0f0;
+         border: none;
+         cursor: pointer;
+         padding: 5px;
+         border-radius: 4px;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         }
+         .settings-button img {
+         width: 16px;
+         height: 16px;
+         }
+         .settings-button:hover {
+         background-color: #e0e0e0;
+         }
       </style>
    </head>
    <body>
+      <!-- Première container existante -->
       <div class="container">
-         <select>
-            <option value="vavoo">VAVOO</option>
-            <option value="xtream">XTREAM</option>
-         </select>
+         <div class="label-button">VAVOO</div>
          <div class="spacer"></div>
          <label id="last-update">Dernière mise à jour : 01/09/2024</label>
          <button id="update-button">UPDATE</button>
       </div>
+
+      <!-- Nouvelle container demandée -->
+      <div class="container">
+         <button class="settings-button">
+            <img src="settings-icon.png" alt="Settings" />
+         </button>
+         <div class="label-button">XTREAM</div>
+         <div class="spacer"></div>
+         <button id="update-button-xtream">UPDATE</button>
+      </div>
+      
       <script>
          console.log('Script JavaScript chargé'); // Debug: script chargé
          
@@ -82,6 +138,12 @@
              console.error('Erreur lors de l\'envoi de la requête:', error); // Debug: Erreur lors de la requête
              alert('Erreur lors de la mise à jour');
          });
+         });
+         
+         // Gestion de l'événement de mise à jour pour le bouton XTREAM
+         document.getElementById('update-button-xtream').addEventListener('click', () => {
+             console.log('Le bouton "UPDATE" de XTREAM a été cliqué.');
+             // Ajouter votre logique de mise à jour ici si nécessaire
          });
          
          // Fonction pour récupérer la dernière modification

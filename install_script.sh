@@ -223,60 +223,9 @@ function installation_nginx() {
     echo "Demarage de Nginx en cours..."
     sleep 1
     # Configurer Nginx pour écouter sur le port 9090
-    sudo bash -c "cat > /etc/nginx/sites-available/clients << EOF
-server {
-    listen 9090;
-    server_name localhost;
-
-    location / {
-        root /var/www/html;
-        index index.html;
-    }
-
-    location /clients.json {
-        alias /var/www/html/clients.json;
-        default_type application/json;
-        add_header Access-Control-Allow-Origin *;
-    }
-
-    location /monitoring.json {
-        alias /var/www/html/monitoring.json;
-        default_type application/json;
-        add_header Access-Control-Allow-Origin *;
-    }
-
-    location /update {
-        proxy_pass http://localhost:3000;  # Redirige vers Node.js sur le port 3000
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-        
-        # Gérer les en-têtes pour obtenir l'IP d'origine
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-
-    location /last-modified {
-        proxy_pass http://localhost:3000;  # Redirige vers Node.js sur le port 3000
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-
-        # Gérer les en-têtes pour obtenir l'IP d'origine
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-EOF"
-
+    echo "Copie du fichier 'clients'...dans /etc/nginx/sites-available/"
+    sudo cp clients /etc/nginx/sites-available/   
     sleep 1
-
     # Activer cette nouvelle configuration
     sudo ln -s /etc/nginx/sites-available/clients /etc/nginx/sites-enabled/
 

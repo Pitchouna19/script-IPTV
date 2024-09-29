@@ -58,7 +58,7 @@ function installation_node() {
     echo "Installation du serveur Node Cors en cours..."
     sudo npm install cors
     sleep 5
-    cd
+    cd /root/script-IPTV/
     echo "Suite..."
     echo "Copy du fichier server.js dans /var/www/html/"
     sudo cp server.js /var/www/html/
@@ -248,29 +248,29 @@ server {
     location /update {
         proxy_pass http://localhost:3000;  # Redirige vers Node.js sur le port 3000
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
         
         # Gérer les en-têtes pour obtenir l'IP d'origine
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
     location /last-modified {
         proxy_pass http://localhost:3000;  # Redirige vers Node.js sur le port 3000
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
 
-        # G      rer les en-t      tes pour obtenir l'IP d'origine
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        # Gérer les en-têtes pour obtenir l'IP d'origine
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
 EOF"

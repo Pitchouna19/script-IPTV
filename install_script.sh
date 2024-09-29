@@ -9,6 +9,10 @@ function echo_red() {
     echo -e "\e[31m$1\e[0m"
 }
 
+function echo_orange() {
+    echo -e "\e[38;5;214m$1\e[0m"
+}
+
 # Affichage du motif ASCII pour "RST-PI"
 clear
 echo "#############################################"
@@ -267,15 +271,19 @@ function installation_client() {
     echo # Nouvelle ligne pour rendre l'affichage plus propre
     
     # Demander les trois questions et stocker les réponses
-    read -p "Quelle est l'IP du Serveur Broker : " serveur_ip
-    read -p "Quel est le nom d'utilisateur : " utilisateur    
+    echo_orange "Quelle est l'IP du Serveur Broker : "
+    read -p "" serveur_ip
+    echo_orange "Quel est le nom d'utilisateur : "
+    read -p "" utilisateur    
     echo # Nouvelle ligne pour rendre l'affichage plus propre
 
 
     sudo mosquitto_passwd -c /etc/mosquitto/passwordfile "$utilisateur"
     sudo bash -c 'grep -qxF "allow_anonymous false" /etc/mosquitto/mosquitto.conf || echo "allow_anonymous false" >> /etc/mosquitto/mosquitto.conf'
     sudo bash -c 'grep -qxF "password_file /etc/mosquitto/passwordfile" /etc/mosquitto/mosquitto.conf || echo "password_file /etc/mosquitto/passwordfile" >> /etc/mosquitto/mosquitto.conf'
-    read -s -p "Quel est le mot de passe precedant [Encore SVP] : " mot_de_passe
+
+    echo_orange "Quel est le mot de passe precedant [Encore SVP] : "
+    read -s -p "" mot_de_passe
     
     sudo systemctl restart mosquitto
     
@@ -360,14 +368,17 @@ function installation_serveur() {
     sleep 2   
 
     # Demander les trois questions et stocker les réponses
-    read -p "Quelle est l'IP du Serveur Broker : " serveur_ip
-    read -p "Quel est le nom d'utilisateur : " utilisateur
+    echo_orange "Quelle est l'IP du Serveur Broker : "
+    read -p "" serveur_ip
+    echo_orange "Quel est le nom d'utilisateur : "
+    read -p "" utilisateur
     echo # Nouvelle ligne pour rendre l'affichage plus propre
 
     sudo mosquitto_passwd -c /etc/mosquitto/passwordfile "$utilisateur"
     sudo bash -c 'grep -qxF "allow_anonymous false" /etc/mosquitto/mosquitto.conf || echo "allow_anonymous false" >> /etc/mosquitto/mosquitto.conf'
     sudo bash -c 'grep -qxF "password_file /etc/mosquitto/passwordfile" /etc/mosquitto/mosquitto.conf || echo "password_file /etc/mosquitto/passwordfile" >> /etc/mosquitto/mosquitto.conf'
-    read -s -p "Quel est le mot de passe precedant [Encore SVP] : " mot_de_passe
+    echo_orange "Quel est le mot de passe precedant [Encore SVP] : "
+    read -s -p "" mot_de_passe
     
     sudo systemctl restart mosquitto
 

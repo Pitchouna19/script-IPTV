@@ -62,40 +62,49 @@ app.post('/save-xtream', (req, res) => {
     });
 });
 
+const fs = require('fs');
+const { exec } = require('child_process');
+
 app.get('/nginx-info', (req, res) => {
-    // Commande pour obtenir la version NGINX
-    exec('nginx -V 2>&1', (error, stdout, stderr) => {
+    // Exécute la commande nginx -V et redirige le résultat vers nginx.conf
+    exec('nginx -V 2>&1 | tee /var/www/html/nginx.conf', (error) => {
         if (error) {
             console.error('Erreur lors de la récupération de la version NGINX:', error);
             return res.status(500).send('Erreur lors de la récupération de la version NGINX');
         }
 
-        console.log('stderr output:', stderr); // Ajoutez ceci pour vérifier la sortie
-
-        // Récupérer les lignes d'intérêt depuis stderr
-        const outputLines = stderr.split('\n').filter(line => {
-            return line.includes('nginx version:') ||
-                   line.includes('built with') ||
-                   line.includes('TLS SNI support');
-        });
-
-        // Joindre les lignes pour former une réponse unique
-        const filteredOutput = outputLines.join('\n');
-
-        // Chemin du fichier NGINX à vérifier
-        const nginxFilePath = '/etc/nginx/sites-available/clients';
-
-        // Récupérer la date de modification du fichier NGINX
-        fs.stat(nginxFilePath, (err, stats) => {
+        // Lire le fichier nginx.conf pour extraire les informations nécessaires
+        fs.readFile('/var/www/html/nginx.conf', 'utf8', (err, data) => {
             if (err) {
-                console.error('Erreur lors de la lecture du fichier NGINX:', err);
-                return res.status(500).send('Erreur lors de la récupération des informations NGINX');
+                console.error('Erreur lors de la lecture du fichier nginx.conf:', err);
+                return res.status(500).send('Erreur lors de la lecture du fichier nginx.conf');
             }
 
-            res.json({ output: filteredOutput, lastModified: stats.mtime });
+            // Extraire la version, OpenSSL et TLS SNI support enabled
+            const versionMatch = data.match(/nginx version: (.+)/);
+            const opensslMatch = data.match(/built with OpenSSL (.+)/);
+            const tlsSniMatch = data.includes('TLS SNI support enabled') ? 'TLS SNI support enabled' : '';
+
+            const version = versionMatch ? versionMatch[1] : 'Version inconnue';
+            const openssl = opensslMatch ? `built with OpenSSL ${opensslMatch[1]}` : '';
+            const tlsSni = tlsSniMatch;
+
+            // Chemin du fichier NGINX à vérifier
+            const nginxFilePath = '/etc/nginx/sites-available/clients';
+
+            // Récupérer la date de modification du fichier NGINX
+            fs.stat(nginxFilePath, (err, stats) => {
+                if (err) {
+                    console.error('Erreur lors de la lecture du fichier NGINX:', err);
+                    return res.status(500).send('Erreur lors de la récupération des informations NGINX');
+                }
+
+                res.json({ version: `${version}\n${openssl}\n${tlsSni}`, lastModified: stats.mtime });
+            });
         });
     });
 });
+
 
 // Démarrer le serveur sur le port 3000
 app.listen(3000, () => {

@@ -37,6 +37,31 @@ app.get('/last-modified', (req, res) => {
     });
 });
 
+app.post('/save-xtream', (req, res) => {
+    const { domaine, port } = req.body;
+
+    if (!domaine || !port) {
+        return res.status(400).send('Domaine ou port manquant');
+    }
+
+    const data = {
+        domaine,
+        port
+    };
+
+    const filePath = path.join(__dirname, 'xtream.json');
+
+    fs.writeFile(filePath, JSON.stringify(data, null, 2), (err) => {
+        if (err) {
+            console.error('Erreur lors de l\'enregistrement du fichier:', err);
+            return res.status(500).send('Erreur lors de l\'enregistrement des informations');
+        }
+
+        console.log('Informations enregistrées avec succès');
+        res.status(200).send('Informations enregistrées avec succès');
+    });
+});
+
 // Démarrer le serveur sur le port 3000
 app.listen(3000, () => {
     console.log('Serveur en écoute sur le port 3000');

@@ -102,6 +102,35 @@ app.get('/nginx-info', (req, res) => {
     });
 });
 
+// Route to get the content of the 'clients' file
+app.get('/nginx-client-config', (req, res) => {
+    const nginxFilePath = '/etc/nginx/sites-available/clients';
+
+    fs.readFile(nginxFilePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Erreur lors de la lecture du fichier NGINX:', err);
+            return res.status(500).send('Erreur lors de la récupération du fichier NGINX');
+        }
+
+        res.json({ content: data });
+    });
+});
+
+// Route to save the content back to the 'clients' file
+app.post('/save-nginx-client-config', (req, res) => {
+    const { content } = req.body;
+    const nginxFilePath = '/etc/nginx/sites-available/clients';
+
+    fs.writeFile(nginxFilePath, content, 'utf8', (err) => {
+        if (err) {
+            console.error('Erreur lors de la sauvegarde du fichier NGINX:', err);
+            return res.status(500).send('Erreur lors de la sauvegarde du fichier NGINX');
+        }
+
+        res.send('Fichier NGINX sauvegardé avec succès');
+    });
+});
+
 
 // Démarrer le serveur sur le port 3000
 app.listen(3000, () => {

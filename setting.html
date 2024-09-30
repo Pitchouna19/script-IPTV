@@ -102,19 +102,36 @@
          <label id="last-update">Dernière mise à jour : 01/09/2024</label>
          <button id="update-button">UPDATE</button>
       </div>
-
       <!-- Nouvelle container demandée -->
       <div class="container">
-         <button class="settings-button">
-            <img src="settings-icon.png" alt="Settings" />
+         <div class="label-button" style="margin-right: 10px;">XTREAM</div>
+         <button class="settings-button" id="settings-icon">
+         <img src="src-img/settings-icon.png" alt="Settings" />
          </button>
-         <div class="label-button">XTREAM</div>
+         <label id="domaine-label" style="display: none; margin-left: 10px;">DOMAINE :</label>
+         <input type="text" id="text-input" style="display: none; margin-left: 5px; padding: 5px; border: 2px solid #00f; border-radius: 4px; width: 300px;" />
+         <label id="port-label" style="display: none; margin-left: 10px;">PORT :</label>
+         <input type="text" id="port-input" style="display: none; margin-left: 5px; padding: 5px; border: 2px solid #00f; border-radius: 4px; width: 80px;" />
          <div class="spacer"></div>
+         <label id="last-update-xtream" style="margin-left: 10px;">Domaine et Port : En attente de chargement...</label>
          <button id="update-button-xtream">UPDATE</button>
       </div>
-      
       <script>
          console.log('Script JavaScript chargé'); // Debug: script chargé
+         
+         document.getElementById('settings-icon').addEventListener('click', () => {
+         const textInput = document.getElementById('text-input');
+         const portLabel = document.getElementById('port-label');
+         const domaineLabel = document.getElementById('domaine-label');
+         const portInput = document.getElementById('port-input');
+         
+         // Afficher ou masquer les champs de saisie
+         const isHidden = textInput.style.display === 'none';
+         textInput.style.display = isHidden ? 'inline-block' : 'none';
+         portLabel.style.display = isHidden ? 'inline-block' : 'none';
+         domaineLabel.style.display = isHidden ? 'inline-block' : 'none';
+         portInput.style.display = isHidden ? 'inline-block' : 'none';
+         });
          
          document.getElementById('update-button').addEventListener('click', () => {
          console.log('Le bouton "UPDATE" a été cliqué.'); // Debug: clic sur le bouton
@@ -140,6 +157,44 @@
          });
          });
          
+         document.getElementById('update-button-xtream').addEventListener('click', () => {
+         console.log('Le bouton "UPDATE" de XTREAM a été cliqué.');
+         
+         // Récupérer les valeurs des champs de saisie
+         const domaine = document.getElementById('text-input').value;
+         const port = document.getElementById('port-input').value;
+         
+         // Vérifier que les champs ne sont pas vides
+         if (!domaine || !port) {
+         alert('Veuillez remplir les champs "Domaine" et "Port"');
+         return;
+         }
+         
+         // Envoyer une requête POST avec les données
+         fetch('/save-xtream', {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({ domaine, port }),
+         })
+         .then(response => {
+         if (response.ok) {
+            console.log('Les informations ont été enregistrées avec succès.');
+            alert('Mise à jour des informations réussie.');
+            document.getElementById('settings-icon').click(); // Simuler le clic sur le bouton settings-icon
+            updateXtreamInfo(); // Mettre à jour l'affichage
+         } else {
+            console.error('Erreur lors de l\'enregistrement des informations:', response);
+            alert('Erreur lors de la mise à jour des informations.');
+         }
+         })
+         .catch(error => {
+         console.error('Erreur lors de l\'envoi de la requête:', error);
+         alert('Erreur lors de la mise à jour des informations.');
+         });
+         });
+         
          // Gestion de l'événement de mise à jour pour le bouton XTREAM
          document.getElementById('update-button-xtream').addEventListener('click', () => {
              console.log('Le bouton "UPDATE" de XTREAM a été cliqué.');
@@ -149,24 +204,47 @@
          // Fonction pour récupérer la dernière modification
          function updateLastModified() {
          fetch('/last-modified')
-             .then(response => response.json())
-             .then(data => {
-                 const label = document.getElementById('last-update');
-                 if (data.lastModified) {
-                     const date = new Date(data.lastModified);
-                     label.textContent = `Dernière mise à jour : ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-                 } else {
-                     label.textContent = 'Aucune information';
-                 }
-             })
-             .catch(error => {
-                 console.error('Erreur lors de la récupération de la dernière modification:', error);
-                 document.getElementById('last-update').textContent = 'Aucune information';
-             });
+         .then(response => response.json())
+         .then(data => {
+            const label = document.getElementById('last-update');
+            if (data.lastModified) {
+                const date = new Date(data.lastModified);
+                label.innerHTML = `<span style="color: black;">Dernière mise à jour :</span> <span style="color: green;">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>`;
+            } else {
+                label.innerHTML = '<span style="color: red;">Aucune information</span>';
+            }
+         })
+         .catch(error => {
+            console.error('Erreur lors de la récupération de la dernière modification:', error);
+            document.getElementById('last-update').innerHTML = '<span style="color: red;">Aucune information</span>';
+         });
          }
          
-         // Charger la dernière modification au chargement de la page
-         document.addEventListener('DOMContentLoaded', updateLastModified);
+         // Fetch the xtream.json and update the label
+         function updateXtreamInfo() {
+         fetch('/xtream.json')
+         .then(response => response.json())
+         .then(data => {
+            const label = document.getElementById('last-update-xtream');
+            if (data.domaine && data.port) {
+                label.innerHTML = `<span style="color: black;">Domaine :</span> <span style="color: green;">${data.domaine}</span>, <span style="color: black;">Port :</span> <span style="color: green;">${data.port}</span>`;
+            } else {
+                label.textContent = 'Informations manquantes';
+            }
+         })
+         .catch(error => {
+            console.error('Erreur lors de la récupération du fichier xtream.json:', error);
+            const lastUpdateXtream = document.getElementById('last-update-xtream');
+            lastUpdateXtream.textContent = 'Pas encore Configuré';
+            lastUpdateXtream.style.color = 'red'; // Appliquer la couleur rouge
+         });
+         }
+         
+         /// Charger les informations Xtream lors du chargement de la page
+         document.addEventListener('DOMContentLoaded', () => {
+            updateXtreamInfo();
+            updateLastModified(); // Charger la dernière modification
+         });
+         
       </script>
    </body>
-</html>

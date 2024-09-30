@@ -64,14 +64,14 @@ app.post('/save-xtream', (req, res) => {
 
 app.get('/nginx-info', (req, res) => {
     // Commande pour obtenir la version NGINX
-    exec('nginx -v 2>&1', (error, stdout, stderr) => {
+    exec('nginx -V 2>&1', (error, stdout, stderr) => {
         if (error) {
             console.error('Erreur lors de la récupération de la version NGINX:', error);
             return res.status(500).send('Erreur lors de la récupération de la version NGINX');
         }
 
         // Récupérer la version depuis stderr
-        const versionMatch = stderr.match(/nginx version: (.+)/);
+        const versionMatch = stderr.match(/nginx version:\s*(nginx\/\d+\.\d+\.\d+.*)/);
         const version = versionMatch ? versionMatch[1] : 'Version inconnue';
 
         // Chemin du fichier NGINX à vérifier
@@ -88,7 +88,6 @@ app.get('/nginx-info', (req, res) => {
         });
     });
 });
-
 
 // Démarrer le serveur sur le port 3000
 app.listen(3000, () => {

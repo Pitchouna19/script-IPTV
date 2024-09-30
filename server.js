@@ -70,6 +70,8 @@ app.get('/nginx-info', (req, res) => {
             return res.status(500).send('Erreur lors de la récupération de la version NGINX');
         }
 
+        console.log('stderr output:', stderr); // Ajoutez ceci pour vérifier la sortie
+
         // Récupérer les lignes d'intérêt depuis stderr
         const outputLines = stderr.split('\n').filter(line => {
             return line.includes('nginx version:') ||

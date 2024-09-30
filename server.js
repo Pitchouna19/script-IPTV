@@ -62,6 +62,34 @@ app.post('/save-xtream', (req, res) => {
     });
 });
 
+app.get('/nginx-info', (req, res) => {
+    // Commande pour obtenir la version NGINX
+    exec('nginx -v 2>&1', (error, stdout, stderr) => {
+        if (error) {
+            console.error('Erreur lors de la récupération de la version NGINX:', error);
+            return res.status(500).send('Erreur lors de la récupération de la version NGINX');
+        }
+
+        // Récupérer la version depuis stderr
+        const versionMatch = stderr.match(/nginx version: (.+)/);
+        const version = versionMatch ? versionMatch[1] : 'Version inconnue';
+
+        // Chemin du fichier NGINX à vérifier
+        const nginxFilePath = '/etc/nginx/sites-available/clients';
+
+        // Récupérer la date de modification du fichier NGINX
+        fs.stat(nginxFilePath, (err, stats) => {
+            if (err) {
+                console.error('Erreur lors de la lecture du fichier NGINX:', err);
+                return res.status(500).send('Erreur lors de la récupération des informations NGINX');
+            }
+
+            res.json({ version, lastModified: stats.mtime });
+        });
+    });
+});
+
+
 // Démarrer le serveur sur le port 3000
 app.listen(3000, () => {
     console.log('Serveur en écoute sur le port 3000');

@@ -24,7 +24,7 @@ app.post('/update', (req, res) => {
 });
 
 // Nouveau point de terminaison pour obtenir la date de modification de 'channel.json'
-app.get('/last-modified', (req, res) => {
+app.post('/last-modified', (req, res) => {
     const filePath = path.join(__dirname, 'channel.json');
 
     fs.stat(filePath, (err, stats) => {

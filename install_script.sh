@@ -241,6 +241,8 @@ function installation_nginx() {
     sudo cp index.html /var/www/html/
     # Copie de setting.html vers var/www/html/
     sudo cp setting.html /var/www/html/
+    # Copie du dossier 'src-img' vers var/www/html/
+    cp -R src-img /var/www/html/
     # Copie du script update_vavoo.sh vers le path /usr/local/bin/
     sudo cp update_vavoo.sh /usr/local/bin/
     chmod +x /usr/local/bin/update_vavoo.sh

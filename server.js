@@ -62,9 +62,6 @@ app.post('/save-xtream', (req, res) => {
     });
 });
 
-const fs = require('fs');
-const { exec } = require('child_process');
-
 app.get('/nginx-info', (req, res) => {
     // Exécute la commande nginx -V et redirige le résultat vers nginx.conf
     exec('nginx -V 2>&1 | tee /var/www/html/nginx.conf', (error) => {

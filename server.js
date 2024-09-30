@@ -70,9 +70,15 @@ app.get('/nginx-info', (req, res) => {
             return res.status(500).send('Erreur lors de la récupération de la version NGINX');
         }
 
-        // Récupérer la version depuis stderr
-        const versionMatch = stderr.match(/nginx version:\s*(nginx\/\d+\.\d+\.\d+.*)/);
-        const version = versionMatch ? versionMatch[1] : 'Version inconnue';
+        // Récupérer les lignes d'intérêt depuis stderr
+        const outputLines = stderr.split('\n').filter(line => {
+            return line.includes('nginx version:') ||
+                   line.includes('built with') ||
+                   line.includes('TLS SNI support');
+        });
+
+        // Joindre les lignes pour former une réponse unique
+        const filteredOutput = outputLines.join('\n');
 
         // Chemin du fichier NGINX à vérifier
         const nginxFilePath = '/etc/nginx/sites-available/clients';
@@ -84,7 +90,7 @@ app.get('/nginx-info', (req, res) => {
                 return res.status(500).send('Erreur lors de la récupération des informations NGINX');
             }
 
-            res.json({ version, lastModified: stats.mtime });
+            res.json({ output: filteredOutput, lastModified: stats.mtime });
         });
     });
 });

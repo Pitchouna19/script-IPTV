@@ -260,7 +260,7 @@ function installation_openresty_server() {
     chmod +x /usr/local/bin/domaine_script.sh
     
     # Lancement du script domaine_script.sh avant openresty
-    /usr/local/bin/domaine_script.sh
+    sudo /usr/local/bin/domaine_script.sh
     
     sudo systemctl enable openresty                
     sudo systemctl start openresty

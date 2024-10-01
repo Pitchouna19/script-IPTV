@@ -215,10 +215,10 @@ function installation_srs() {
     sleep 5    
 }
 
-# Fonction commune : Installation de Nginx
+# Fonction commune : Installation de OpenResty
 
 Copier le code
-function installation_openresty() {
+function installation_openresty_server() {
     echo "Installation d'OpenResty en cours..."
     sudo apt update
     sudo apt install -y software-properties-common
@@ -480,7 +480,7 @@ case $choix in
         installation_mosquitto
         installation_serveur
         installation_Docker
-        installation_openresty
+        installation_openresty_server
         installation_node
         ;;
     q)

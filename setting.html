@@ -116,6 +116,22 @@
          <label id="last-update-xtream" style="margin-left: 10px;">Domaine et Port : En attente de chargement...</label>
          <button id="update-button-xtream">UPDATE</button>
       </div>
+      <!-- Nouvelle container NGINX -->
+      <div class="container">
+         <div class="label-button" style="margin-right: 10px;">NGINX</div>
+         <div class="spacer"></div>
+         <label id="last-update-nginx" style="margin-left: 10px;">Version et dernière modification de NGINX en attente...</label>
+         <button onclick="openNginxModal()">OPEN</button>
+      </div>
+      <!-- HTML for the modal window -->
+      <div id="nginx-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border:1px solid #ccc; z-index:1000;">
+         <textarea id="nginx-content" style="width:100%; height:300px;"></textarea>
+         <div style="text-align:right; margin-top:10px;">
+            <button onclick="closeModal()">Close</button>
+            <button onclick="saveContent()">Save</button>
+         </div>
+      </div>
+      <div id="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999;" onclick="closeModal()"></div>
       <script>
          console.log('Script JavaScript chargé'); // Debug: script chargé
          
@@ -201,6 +217,73 @@
              // Ajouter votre logique de mise à jour ici si nécessaire
          });
          
+         // Fonction pour récupérer les informations NGINX
+         function updateNginxInfo() {
+         fetch('/nginx-info') // Assurez-vous que l'URL correspond à celle que vous utilisez pour obtenir les informations
+         .then(response => response.json())
+         .then(data => {
+            const label = document.getElementById('last-update-nginx');
+            if (data.version && data.lastModified) {
+                const date = new Date(data.lastModified);
+                label.innerHTML = `<span style="color: black;">Version :</span> <span style="color: green;">${data.version}</span>, <span style="color: black;">Dernière modification :</span> <span style="color: green;">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>`;
+            } else {
+                label.textContent = 'Informations manquantes';
+            }
+         })
+         .catch(error => {
+            console.error('Erreur lors de la récupération des informations NGINX:', error);
+            const lastUpdateNginx = document.getElementById('last-update-nginx');
+            lastUpdateNginx.textContent = 'Pas encore Configuré';
+            lastUpdateNginx.style.color = 'red';
+         });
+         }
+         
+         // Function to open the modal and load the file content
+         function openNginxModal() {
+         fetch('/nginx-client-config')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('nginx-content').value = data.content;
+                document.getElementById('nginx-modal').style.display = 'block';
+                document.getElementById('modal-overlay').style.display = 'block';
+            })
+            .catch(error => {
+                alert('Erreur lors de la récupération du fichier NGINX');
+                console.error(error);
+            });
+         }
+         
+         // Function to close the modal
+         function closeModal() {
+         document.getElementById('nginx-modal').style.display = 'none';
+         document.getElementById('modal-overlay').style.display = 'none';
+         }
+         
+         // Function to save the content back to the server
+         function saveContent() {
+         const updatedContent = document.getElementById('nginx-content').value;
+         
+         fetch('/save-nginx-client-config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ content: updatedContent })
+         })
+         .then(response => {
+            if (response.ok) {
+                alert('Fichier NGINX sauvegardé avec succès');
+                closeModal();
+            } else {
+                alert('Erreur lors de la sauvegarde du fichier NGINX');
+            }
+         })
+         .catch(error => {
+            alert('Erreur lors de la sauvegarde du fichier NGINX');
+            console.error(error);
+         });
+         }
+         
          // Fonction pour récupérer la dernière modification
          function updateLastModified() {
          fetch('/last-modified')
@@ -244,6 +327,7 @@
          document.addEventListener('DOMContentLoaded', () => {
             updateXtreamInfo();
             updateLastModified(); // Charger la dernière modification
+            updateNginxInfo(); // Charger les informations NGINX
          });
          
       </script>

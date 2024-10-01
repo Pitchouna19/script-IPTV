@@ -216,8 +216,6 @@ function installation_srs() {
 }
 
 # Fonction commune : Installation de OpenResty
-
-Copier le code
 function installation_openresty_server() {
     echo "Installation d'OpenResty en cours..."
     sudo apt install -y software-properties-common

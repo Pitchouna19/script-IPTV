@@ -231,6 +231,9 @@ function installation_openresty_server() {
     echo_green "#############################################"
     echo "Démarrage d'OpenResty en cours..."
     sleep 1
+    # Queleque creation de dossier
+    sudo mkdir /etc/openresty/sites-enabled
+    sudo mkdir /etc/openresty/sites-available
     # Configurer OpenResty pour écouter sur le port 9090
     echo "Copie du fichier 'clients'...dans /etc/openresty/sites-available/"
     sudo cp clients /etc/openresty/sites-available/

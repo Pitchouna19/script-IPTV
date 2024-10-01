@@ -251,9 +251,16 @@ function installation_openresty_server() {
     # Copie du script update_vavoo.sh vers le path /usr/local/bin/
     sudo cp update_vavoo.sh /usr/local/bin/
     chmod +x /usr/local/bin/update_vavoo.sh
+    
+    # Copie du script xtream.json  vers le path /var/www/html/
+    sudo cp xtream.json /var/www/html/
+    
     # Copie du script domaine_script.sh vers le path /usr/local/bin/
     sudo cp domaine_script.sh /usr/local/bin/
     chmod +x /usr/local/bin/domaine_script.sh
+    
+    # Lancement du script domaine_script.sh avant openresty
+    /usr/local/bin/domaine_script.sh
     
     sudo systemctl enable openresty                
     sudo systemctl start openresty

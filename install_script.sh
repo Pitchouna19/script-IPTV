@@ -231,6 +231,8 @@ function installation_openresty_server() {
     echo_green "#############################################"
     echo "Démarrage d'OpenResty en cours..."
     sleep 1
+    # Copie du nginx.conf vers /etc/openresty/
+    sudo cp nginx.conf /etc/openresty/
     # Queleque creation de dossier
     sudo mkdir /etc/openresty/sites-enabled
     sudo mkdir /etc/openresty/sites-available

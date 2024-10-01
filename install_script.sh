@@ -218,8 +218,10 @@ function installation_srs() {
 # Fonction commune : Installation de OpenResty
 function installation_openresty_server() {
     echo "Installation d'OpenResty en cours..."
-    sudo apt install -y software-properties-common
-    sudo add-apt-repository -y ppa:openresty/ppa
+    sudo apt-get -y install --no-install-recommends wget gnupg ca-certificates lsb-release
+    sudo wget -O - https://openresty.org/package/pubkey.gpg | sudo apt-key add -
+    echo "deb http://openresty.org/package/ubuntu $(lsb_release -sc) main" \
+     | sudo tee /etc/apt/sources.list.d/openresty.list
     sudo apt update
     sudo apt install -y openresty
     echo_green "#############################################"

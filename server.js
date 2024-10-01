@@ -77,7 +77,7 @@ app.post('/save-xtream', (req, res) => {
 
 app.get('/nginx-info', (req, res) => {
     // Exécute la commande nginx -V et redirige le résultat vers nginx.conf
-    exec('nginx -V 2>&1 | tee /var/www/html/nginx.conf', (error) => {
+    exec('openresty -V 2>&1 | tee /var/www/html/nginx.conf', (error) => {
         if (error) {
             console.error('Erreur lors de la récupération de la version NGINX:', error);
             return res.status(500).send('Erreur lors de la récupération de la version NGINX');
@@ -100,7 +100,7 @@ app.get('/nginx-info', (req, res) => {
             const tlsSni = tlsSniMatch;
 
             // Chemin du fichier NGINX à vérifier
-            const nginxFilePath = '/etc/nginx/sites-available/clients';
+            const nginxFilePath = '/etc/openresty/sites-available/clients';
 
             // Récupérer la date de modification du fichier NGINX
             fs.stat(nginxFilePath, (err, stats) => {
@@ -117,7 +117,7 @@ app.get('/nginx-info', (req, res) => {
 
 // Route to get the content of the 'clients' file
 app.get('/nginx-client-config', (req, res) => {
-    const nginxFilePath = '/etc/nginx/sites-available/clients';
+    const nginxFilePath = '/etc/openresty/sites-available/clients';
 
     fs.readFile(nginxFilePath, 'utf8', (err, data) => {
         if (err) {
@@ -132,7 +132,7 @@ app.get('/nginx-client-config', (req, res) => {
 // Route to save the content back to the 'clients' file
 app.post('/save-nginx-client-config', (req, res) => {
     const { content } = req.body;
-    const nginxFilePath = '/etc/nginx/sites-available/clients';
+    const nginxFilePath = '/etc/openresty/sites-available/clients';
 
     fs.writeFile(nginxFilePath, content, 'utf8', (err) => {
         if (err) {

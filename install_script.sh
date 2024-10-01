@@ -216,48 +216,52 @@ function installation_srs() {
 }
 
 # Fonction commune : Installation de Nginx
-function installation_nginx() {
-    echo "Installation de Ngin en cours..."
-    sudo apt install -y nginx
+
+Copier le code
+function installation_openresty() {
+    echo "Installation d'OpenResty en cours..."
+    sudo apt update
+    sudo apt install -y software-properties-common
+    sudo add-apt-repository -y ppa:openresty/ppa
+    sudo apt update
+    sudo apt install -y openresty
     echo_green "#############################################"
     echo_green "#                                           #"
-    echo_green "#       Installation Nginx Serveur OK       #"
+    echo_green "#       Installation OpenResty Serveur OK   #"
     echo_green "#                                           #"
     echo_green "#############################################"
-    echo "Demarage de Nginx en cours..."
+    echo "Démarrage d'OpenResty en cours..."
     sleep 1
-    # Configurer Nginx pour écouter sur le port 9090
-    echo "Copie du fichier 'clients'...dans /etc/nginx/sites-available/"
-    sudo cp clients /etc/nginx/sites-available/   
+    # Configurer OpenResty pour écouter sur le port 9090
+    echo "Copie du fichier 'clients'...dans /etc/openresty/sites-available/"
+    sudo cp clients /etc/openresty/sites-available/
     sleep 1
     # Activer cette nouvelle configuration
-    sudo ln -s /etc/nginx/sites-available/clients /etc/nginx/sites-enabled/
+    sudo ln -s /etc/openresty/sites-available/clients /etc/openresty/sites-enabled/
 
     # Création de l'interface AJAX
     sudo mkdir -p /var/www/html
     sudo ln -s /var/lib/mosquitto/clients.json /var/www/html/clients.json
     sudo ln -s /var/lib/mosquitto/monitoring.json /var/www/html/monitoring.json
-    # Copie de index.html vers var/www/html/
+    # Copie de index.html vers /var/www/html/
     sudo cp index.html /var/www/html/
-    # Copie de setting.html vers var/www/html/
+    # Copie de setting.html vers /var/www/html/
     sudo cp setting.html /var/www/html/
-    # Copie du dossier 'src-img' vers var/www/html/
+    # Copie du dossier 'src-img' vers /var/www/html/
     cp -R src-img /var/www/html/
     # Copie du script update_vavoo.sh vers le path /usr/local/bin/
     sudo cp update_vavoo.sh /usr/local/bin/
     chmod +x /usr/local/bin/update_vavoo.sh
     
-    sudo systemctl enable nginx                
-    sudo systemctl start nginx
+    sudo systemctl enable openresty                
+    sudo systemctl start openresty
     sleep 5
 
-    if nginx -v &> /dev/null; then
-        echo_green "Nginx installé avec succès."        
+    if openresty -v &> /dev/null; then
+        echo_green "OpenResty installé avec succès."        
     else
-        echo_red "L'installation de Nginx a échoué."
+        echo_red "L'installation d'OpenResty a échoué."
     fi
-    
-    
     
     sleep 5
 }

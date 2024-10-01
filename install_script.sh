@@ -480,7 +480,7 @@ case $choix in
         installation_mosquitto
         installation_serveur
         installation_Docker
-        installation_nginx
+        installation_openresty
         installation_node
         ;;
     q)

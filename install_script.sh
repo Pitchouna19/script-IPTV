@@ -220,7 +220,6 @@ function installation_srs() {
 Copier le code
 function installation_openresty_server() {
     echo "Installation d'OpenResty en cours..."
-    sudo apt update
     sudo apt install -y software-properties-common
     sudo add-apt-repository -y ppa:openresty/ppa
     sudo apt update
@@ -252,6 +251,9 @@ function installation_openresty_server() {
     # Copie du script update_vavoo.sh vers le path /usr/local/bin/
     sudo cp update_vavoo.sh /usr/local/bin/
     chmod +x /usr/local/bin/update_vavoo.sh
+    # Copie du script domaine_script.sh vers le path /usr/local/bin/
+    sudo cp domaine_script.sh /usr/local/bin/
+    chmod +x /usr/local/bin/domaine_script.sh
     
     sudo systemctl enable openresty                
     sudo systemctl start openresty

@@ -1,6 +1,10 @@
 server {
     listen 9090;
-    server_name localhost;
+    
+    # Utiliser Lua pour récupérer la variable d'environnement
+    set_by_lua $domain 'return os.getenv("DOMAIN")';
+
+    server_name $domain;
 
     location / {
         root /var/www/html;

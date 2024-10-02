@@ -76,11 +76,10 @@
          background-color: #0056b3;
          }
          button:active, .label-button:active {
-          background-color: #ffcc00; /* Couleur du témoin de clic */
+         background-color: #ffcc00; /* Couleur du témoin de clic */
          }
-
          .clicked {
-          background-color: #ffcc00 !important; /* Couleur après clic */
+         background-color: #ffcc00 !important; /* Couleur après clic */
          }
          .settings-button {
          background-color: #f0f0f0;
@@ -160,7 +159,7 @@
          console.log('Le bouton "UPDATE" a été cliqué.'); // Debug: clic sur le bouton
          const updateButton = this;
           updateButton.classList.add('clicked');
-    
+         
           setTimeout(() => {
               updateButton.classList.remove('clicked'); // Enlève le témoin de clic après 300ms
           }, 300);
@@ -190,7 +189,7 @@
          console.log('Le bouton "UPDATE" de XTREAM a été cliqué.');
          const updateXtreamButton = this;
          updateXtreamButton.classList.add('clicked');
-    
+         
          setTimeout(() => {
             updateXtreamButton.classList.remove('clicked');
          }, 300);
@@ -230,15 +229,27 @@
          });
          });
          
+         // Gestion de l'événement de mise à jour pour le bouton XTREAM
+         document.getElementById('update-button-xtream').addEventListener('click', () => {
+             console.log('Le bouton "UPDATE" de XTREAM a été cliqué.');
+             // Ajouter votre logique de mise à jour ici si nécessaire
+            const updateXtreamButton = this;
+            updateXtreamButton.classList.add('clicked');
+         
+            setTimeout(() => {
+               updateXtreamButton.classList.remove('clicked');
+            }, 300);
+         });
+         
          // Ajoute un témoin de clic temporaire sur le bouton "OPEN" NGINX
          document.querySelector('button[onclick="openNginxModal()"]').addEventListener('click', function() {
           const openButton = this;
           openButton.classList.add('clicked');
-    
+         
           setTimeout(() => {
               openButton.classList.remove('clicked');
           }, 300);
-      });
+         });
          
          // Fonction pour récupérer les informations NGINX
          function updateNginxInfo() {
@@ -248,7 +259,7 @@
             const label = document.getElementById('last-update-nginx');
             if (data.version && data.lastModified) {
                 const date = new Date(data.lastModified);
-                label.innerHTML = `<span style="color: black;">Version :</span> <span style="color: green;">${data.version}</span>, <span style="color: black;">Dernière modification :</span> <span style="color: green;">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>`;
+                label.innerHTML = <span style="color: black;">Version :</span> <span style="color: green;">${data.version}</span>, <span style="color: black;">Dernière modification :</span> <span style="color: green;">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>;
             } else {
                 label.textContent = 'Informations manquantes';
             }
@@ -315,7 +326,7 @@
             const label = document.getElementById('last-update');
             if (data.lastModified) {
                 const date = new Date(data.lastModified);
-                label.innerHTML = `<span style="color: black;">Dernière mise à jour :</span> <span style="color: green;">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>`;
+                label.innerHTML = <span style="color: black;">Dernière mise à jour :</span> <span style="color: green;">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>;
             } else {
                 label.innerHTML = '<span style="color: red;">Aucune information</span>';
             }
@@ -333,7 +344,7 @@
          .then(data => {
             const label = document.getElementById('last-update-xtream');
             if (data.domaine && data.port) {
-                label.innerHTML = `<span style="color: black;">Domaine :</span> <span style="color: green;">${data.domaine}</span>, <span style="color: black;">Port :</span> <span style="color: green;">${data.port}</span>`;
+                label.innerHTML = <span style="color: black;">Domaine :</span> <span style="color: green;">${data.domaine}</span>, <span style="color: black;">Port :</span> <span style="color: green;">${data.port}</span>;
             } else {
                 label.textContent = 'Informations manquantes';
             }

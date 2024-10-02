@@ -30,4 +30,4 @@ export DOMAIN
 echo "Domaine extrait et exporté : $DOMAIN"
 
 # Redémarrer OpenResty pour appliquer la nouvelle variable d'environnement
-sudo systemctl restart openresty
+#sudo systemctl restart openresty

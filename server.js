@@ -57,9 +57,8 @@ app.post('/save-xtream', (req, res) => {
             return res.status(500).send('Erreur lors de l\'enregistrement des informations');
         }
 
-        console.log('Informations enregistrées avec succès');        
-        res.status(200).send('Informations enregistrées et script exécuté avec succès');
-        });
+        console.log('Informations enregistrées avec succès');
+        res.status(200).send('Informations enregistrées avec succès');
     });
 });
 

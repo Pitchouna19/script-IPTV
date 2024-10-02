@@ -60,7 +60,7 @@ app.post('/save-xtream', (req, res) => {
         console.log('Informations enregistrées avec succès');
 
         // Exécution du script après la sauvegarde du fichier
-        exec('/usr/local/bin/domaine_script.sh', (error, stdout, stderr) => {
+        exec('source /usr/local/bin/domaine_script.sh', (error, stdout, stderr) => {
             if (error) {
                 console.error(`Erreur lors de l'exécution du script: ${error.message}`);
                 console.error(`Détails supplémentaires: ${error.stack}`);

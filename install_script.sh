@@ -123,9 +123,7 @@ function installation_mosquitto() {
         echo_green "Serveur Mosquitto installé et actif."
     else
         echo_red "L'installation de Mosquitto a échoué."
-    fi
-    
-    
+    fi    
     
     sleep 5
 }
@@ -261,11 +259,11 @@ function installation_openresty_server() {
     sudo cp xtream.json /var/www/html/
     
     # Copie du script domaine_script.sh vers le path /usr/local/bin/
-    sudo cp domaine_script.sh /usr/local/bin/
-    chmod +x /usr/local/bin/domaine_script.sh
+    #sudo cp domaine_script.sh /usr/local/bin/
+    #chmod +x /usr/local/bin/domaine_script.sh
     
     # Lancement du script domaine_script.sh avant openresty
-    sudo /usr/local/bin/domaine_script.sh
+    #sudo /usr/local/bin/domaine_script.sh
     
     sudo systemctl enable openresty                
     sudo systemctl start openresty

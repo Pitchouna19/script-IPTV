@@ -58,7 +58,22 @@ app.post('/save-xtream', (req, res) => {
         }
 
         console.log('Informations enregistrées avec succès');
-        res.status(200).send('Informations enregistrées avec succès');
+
+        // Exécution du script après la sauvegarde du fichier
+        exec('/usr/local/bin/domaine_script.sh', (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Erreur lors de l'exécution du script: ${error.message}`);
+                console.error(`Détails supplémentaires: ${error.stack}`);
+                return res.status(500).send(`Erreur lors de l'exécution du script : ${error.message}`);
+            }
+
+            if (stderr) {
+                console.error(`Erreur dans le script: ${stderr}`);
+            }
+
+            console.log(`Script exécuté avec succès: ${stdout}`);
+            res.status(200).send(`Informations enregistrées et script exécuté avec succès: ${stdout}`);
+        });
     });
 });
 

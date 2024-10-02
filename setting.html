@@ -75,6 +75,13 @@
          button:hover {
          background-color: #0056b3;
          }
+         button:active, .label-button:active {
+          background-color: #ffcc00; /* Couleur du témoin de clic */
+         }
+
+         .clicked {
+          background-color: #ffcc00 !important; /* Couleur après clic */
+         }
          .settings-button {
          background-color: #f0f0f0;
          border: none;
@@ -151,6 +158,12 @@
          
          document.getElementById('update-button').addEventListener('click', () => {
          console.log('Le bouton "UPDATE" a été cliqué.'); // Debug: clic sur le bouton
+         const updateButton = this;
+          updateButton.classList.add('clicked');
+    
+          setTimeout(() => {
+              updateButton.classList.remove('clicked'); // Enlève le témoin de clic après 300ms
+          }, 300);
          
          fetch('http://king.iptv.root.sx:9090/update', { // Utiliser l'URL complète
              method: 'POST',
@@ -175,6 +188,12 @@
          
          document.getElementById('update-button-xtream').addEventListener('click', () => {
          console.log('Le bouton "UPDATE" de XTREAM a été cliqué.');
+         const updateXtreamButton = this;
+         updateXtreamButton.classList.add('clicked');
+    
+         setTimeout(() => {
+            updateXtreamButton.classList.remove('clicked');
+         }, 300);
          
          // Récupérer les valeurs des champs de saisie
          const domaine = document.getElementById('text-input').value;
@@ -211,11 +230,15 @@
          });
          });
          
-         // Gestion de l'événement de mise à jour pour le bouton XTREAM
-         document.getElementById('update-button-xtream').addEventListener('click', () => {
-             console.log('Le bouton "UPDATE" de XTREAM a été cliqué.');
-             // Ajouter votre logique de mise à jour ici si nécessaire
-         });
+         // Ajoute un témoin de clic temporaire sur le bouton "OPEN" NGINX
+         document.querySelector('button[onclick="openNginxModal()"]').addEventListener('click', function() {
+          const openButton = this;
+          openButton.classList.add('clicked');
+    
+          setTimeout(() => {
+              openButton.classList.remove('clicked');
+          }, 300);
+      });
          
          // Fonction pour récupérer les informations NGINX
          function updateNginxInfo() {
@@ -236,7 +259,7 @@
             lastUpdateNginx.textContent = 'Pas encore Configuré';
             lastUpdateNginx.style.color = 'red';
          });
-         }
+         }         
          
          // Function to open the modal and load the file content
          function openNginxModal() {

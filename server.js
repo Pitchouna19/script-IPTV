@@ -74,6 +74,22 @@ app.post('/save-xtream', (req, res) => {
             console.log(`Script exécuté avec succès: ${stdout}`);
             res.setHeader('Content-Type', 'application/json');
             res.status(200).json({ message: `Informations enregistrées et script exécuté avec succès: ${stdout}` });
+
+            // Exécuter la commande systemctl après la réponse
+            setTimeout(() => {
+                exec('sudo systemctl restart openresty', (error, stdout, stderr) => {
+                    if (error) {
+                        console.error(`Erreur lors du redémarrage d'OpenResty: ${error.message}`);
+                        return;
+                    }
+
+                    if (stderr) {
+                        console.error(`Erreur du redémarrage d'OpenResty: ${stderr}`);
+                    }
+
+                    console.log(`OpenResty redémarré avec succès: ${stdout}`);
+                });
+            }, 100); // Petit délai pour assurer que la réponse est envoyée avant
         });
     });
 });

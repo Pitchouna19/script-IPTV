@@ -58,39 +58,24 @@ app.post('/save-xtream', (req, res) => {
         }
 
         console.log('Informations enregistrées avec succès');
+        res.setHeader('Content-Type', 'application/json');
+        res.status(200).json({ message: 'Informations enregistrées avec succès' });
 
-        // Exécution du script après la sauvegarde du fichier
-        exec('source /usr/local/bin/domaine_script.sh', (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Erreur lors de l'exécution du script: ${error.message}`);
-                console.error(`Détails supplémentaires: ${error.stack}`);
-                return res.status(500).send(`Erreur lors de l'exécution du script : ${error.message}`);
-            }
+        // Exécuter la commande systemctl après la réponse
+        setTimeout(() => {
+            exec('sudo systemctl restart openresty', (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`Erreur lors du redémarrage d'OpenResty: ${error.message}`);
+                    return;
+                }
 
-            if (stderr) {
-                console.error(`Erreur dans le script: ${stderr}`);
-            }
+                if (stderr) {
+                    console.error(`Erreur du redémarrage d'OpenResty: ${stderr}`);
+                }
 
-            console.log(`Script exécuté avec succès: ${stdout}`);
-            res.setHeader('Content-Type', 'application/json');
-            res.status(200).json({ message: `Informations enregistrées et script exécuté avec succès: ${stdout}` });
-
-            // Exécuter la commande systemctl après la réponse
-            setTimeout(() => {
-                exec('sudo systemctl restart openresty', (error, stdout, stderr) => {
-                    if (error) {
-                        console.error(`Erreur lors du redémarrage d'OpenResty: ${error.message}`);
-                        return;
-                    }
-
-                    if (stderr) {
-                        console.error(`Erreur du redémarrage d'OpenResty: ${stderr}`);
-                    }
-
-                    console.log(`OpenResty redémarré avec succès: ${stdout}`);
-                });
-            }, 100); // Petit délai pour assurer que la réponse est envoyée avant
-        });
+                console.log(`OpenResty redémarré avec succès: ${stdout}`);
+            });
+        }, 100); // Petit délai pour assurer que la réponse est envoyée avant
     });
 });
 

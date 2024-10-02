@@ -203,8 +203,8 @@
          .then(data => {
          console.log('Les informations ont été enregistrées avec succès:', data);
          alert('Mise à jour des informations réussie.');
-         document.getElementById('settings-icon').click();
          updateXtreamInfo();
+         document.getElementById('settings-icon').click();         
          })
          .catch(error => {
          console.error('Erreur lors de la mise à jour:', error);
@@ -300,9 +300,16 @@
          }
          
          // Fetch the xtream.json and update the label
-         function updateXtreamInfo() {
+         function updateXtreamInfo(retry = false) {
+         // Ajouter un délai de 2 secondes avant d'exécuter la requête fetch
+         setTimeout(() => {
          fetch('/xtream.json')
-         .then(response => response.json())
+         .then(response => {
+            if (!response.ok) {
+                throw new Error('Erreur lors de la réponse du serveur');
+            }
+            return response.json();
+         })
          .then(data => {
             const label = document.getElementById('last-update-xtream');
             if (data.domaine && data.port) {
@@ -313,10 +320,19 @@
          })
          .catch(error => {
             console.error('Erreur lors de la récupération du fichier xtream.json:', error);
-            const lastUpdateXtream = document.getElementById('last-update-xtream');
-            lastUpdateXtream.textContent = 'Pas encore Configuré';
-            lastUpdateXtream.style.color = 'red'; // Appliquer la couleur rouge
+         
+            // Si le fetch échoue la première fois, réessayer une deuxième fois
+            if (!retry) {
+                console.log('Nouvelle tentative de récupération des informations après échec...');
+                updateXtreamInfo(true); // Réessai avec l'argument retry défini sur true
+            } else {
+                // Si la deuxième tentative échoue, afficher l'erreur
+                const lastUpdateXtream = document.getElementById('last-update-xtream');
+                lastUpdateXtream.textContent = 'Pas encore Configuré';
+                lastUpdateXtream.style.color = 'red'; // Appliquer la couleur rouge
+            }
          });
+         }, 2000); // Délai de 2 secondes avant de faire le fetch
          }
          
          /// Charger les informations Xtream lors du chargement de la page

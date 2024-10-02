@@ -89,7 +89,7 @@ app.post('/save-xtream', (req, res) => {
 
                     console.log(`OpenResty redémarré avec succès: ${stdout}`);
                 });
-            }, 100); // Petit délai pour assurer que la réponse est envoyée avant
+            }, 2000); // Petit délai pour assurer que la réponse est envoyée avant
         });
     });
 });

@@ -1,7 +1,6 @@
 server {
     listen 9090;
     
-    # Utiliser Lua pour récupérer la variable d'environnement
     set_by_lua $domain 'return os.getenv("DOMAIN")';
 
     server_name $domain;
@@ -15,95 +14,95 @@ server {
         alias /var/www/html/clients.json;
         default_type application/json;
         add_header Access-Control-Allow-Origin *;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        expires off;
     }
 
     location /monitoring.json {
         alias /var/www/html/monitoring.json;
         default_type application/json;
         add_header Access-Control-Allow-Origin *;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        expires off;
     }
 
     location /update {
-        proxy_pass http://localhost:3000;  # Redirige vers Node.js sur le port 3000
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
-        
-        # Gérer les en-têtes pour obtenir l'IP d'origine
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        expires off;
     }
 
     location /last-modified {
-        proxy_pass http://localhost:3000;  # Redirige vers Node.js sur le port 3000
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
 
-        # Gérer les en-têtes pour obtenir l'IP d'origine
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        expires off;
     }
 
     location /save-xtream {
-        proxy_pass http://localhost:3000;  # Redirige vers Node.js sur le port 3000
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
 
-        # Gérer les en-têtes pour obtenir l'IP d'origine
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        expires off;
     }
 
     location /nginx-info {
-        proxy_pass http://localhost:3000;  # Redirige vers Node.js sur le port 3000
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
 
-        # Gérer les en-têtes pour obtenir l'IP d'origine
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        expires off;
     }
 
     location /nginx-client-config {
-        proxy_pass http://localhost:3000;  # Redirige vers Node.js sur le port 3000
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
 
-        # Gérer les en-têtes pour obtenir l'IP d'origine
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        expires off;
     }
 
     location /save-nginx-client-config {
-        proxy_pass http://localhost:3000;  # Redirige vers Node.js sur le port 3000
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
 
-        # Gérer les en-têtes pour obtenir l'IP d'origine
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        expires off;
     }
 }

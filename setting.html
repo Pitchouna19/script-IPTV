@@ -303,7 +303,13 @@
          function updateXtreamInfo(retry = false) {
          // Ajouter un délai de 2 secondes avant d'exécuter la requête fetch
          setTimeout(() => {
-         fetch('/xtream.json')
+         fetch('/xtream.json', {
+            method: 'GET',
+            headers: {
+                'Cache-Control': 'no-cache', // Désactiver le cache
+            },
+            cache: 'no-store', // Ne pas utiliser le cache du navigateur
+         })
          .then(response => {
             if (!response.ok) {
                 throw new Error('Erreur lors de la réponse du serveur');
@@ -334,6 +340,7 @@
          });
          }, 2000); // Délai de 2 secondes avant de faire le fetch
          }
+         
          
          /// Charger les informations Xtream lors du chargement de la page
          document.addEventListener('DOMContentLoaded', () => {

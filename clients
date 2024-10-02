@@ -1,7 +1,25 @@
 server {
     listen 9090;
-    
-    set_by_lua $domain 'return os.getenv("DOMAIN")';
+
+    # Lire et définir le server_name en utilisant Lua
+    set_by_lua_block $domain {
+        local cjson = require "cjson" -- Charger le module cjson pour lire le JSON
+        local file = io.open("/var/www/html/xtream.json", "r") -- Ouvrir le fichier JSON
+
+        if file then
+            local content = file:read("*a") -- Lire tout le contenu du fichier
+            file:close()
+
+            local json = cjson.decode(content) -- Parser le contenu JSON
+            if json and json.domaine then
+                -- Supprimer les préfixes http:// et https:// s'ils sont présents
+                local domain = json.domaine:gsub("https?://", "")
+                return domain -- Retourner le domaine pour server_name
+            end
+        end
+
+        return "_" -- Retourner une valeur par défaut si le fichier n'est pas lisible ou le domaine absent
+    }
 
     server_name $domain;
 
@@ -106,3 +124,4 @@ server {
         expires off;
     }
 }
+

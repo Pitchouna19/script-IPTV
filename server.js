@@ -72,7 +72,8 @@ app.post('/save-xtream', (req, res) => {
             }
 
             console.log(`Script exécuté avec succès: ${stdout}`);
-            res.status(200).send(`Informations enregistrées et script exécuté avec succès: ${stdout}`);
+            res.setHeader('Content-Type', 'application/json');
+            res.status(200).json({ message: `Informations enregistrées et script exécuté avec succès: ${stdout}` });
         });
     });
 });

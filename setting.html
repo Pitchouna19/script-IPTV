@@ -419,53 +419,74 @@
          });
          //
          
-         let bandwidthData = [];
          let currentIndex = 0;
-
+         
          function loadBandwidthInfo() {
-             fetch('/bandwidth.json')
-                 .then(response => response.json())
-                 .then(data => {
-                     bandwidthData = data;
-                     if (bandwidthData.length === 0) {
-                         const bandwidthLabel = document.getElementById('last-update-bandwidth');
-                         bandwidthLabel.innerHTML = 'Aucune information disponible.';
-                         return;
-                     }
-                     updateBandwidthLabel(); // Initial update
-                     setInterval(updateBandwidthLabel, 5000); // Update every 5 seconds
-                 })
-                 .catch(error => {
-                     console.error('Error loading bandwidth information:', error);
-                     const bandwidthLabel = document.getElementById('last-update-bandwidth');
-                     bandwidthLabel.innerHTML = 'Erreur lors du chargement des informations.';
-                 });
+         updateBandwidthLabel(); // Initial update
+         setInterval(updateBandwidthLabel, 5000); // Update every 5 seconds
          }
-
+         
          function updateBandwidthLabel() {
-             const bandwidthLabel = document.getElementById('last-update-bandwidth');
-
-             // Format the current item to display
-             const currentItem = bandwidthData[currentIndex];
-             if (currentItem) {
-                 bandwidthLabel.innerHTML = `[${currentItem.type_serveur} | 
-                                             <span class="orange-text">ip : ${currentItem.ip}</span> | 
-                                             <span class="orange-text">FoT : ${currentItem.forward_at}</span> | 
-                                             <span class="orange-text">Band : ${currentItem.bandwidth}</span>]`;
-                 // Move to the next index, loop back if at the end
-                 currentIndex = (currentIndex + 1) % bandwidthData.length;
-             }
-         }         
+         //fetch('/bandwidth.json')
+         fetch('/bandwidth.json', {
+            method: 'GET',
+            headers: {
+                'Cache-Control': 'no-cache', // Désactiver le cache
+            },
+            cache: 'no-store', // Ne pas utiliser le cache du navigateur
+         })
+         .then(response => response.json())
+         .then(data => {
+            const bandwidthLabel = document.getElementById('last-update-bandwidth');
+         
+            // Update bandwidthData on each fetch
+            if (data.length === 0) {
+                bandwidthLabel.innerHTML = 'Aucune information disponible.';
+                return;
+            }
+            
+            // Use current item based on currentIndex
+            const currentItem = data[currentIndex];
+            if (currentItem) {
+                bandwidthLabel.innerHTML = `[${currentItem.type_serveur} | 
+                                            <span class="orange-text">ip : ${currentItem.ip}</span> | 
+                                            <span class="orange-text">FoT : ${currentItem.forward_at}</span> | 
+                                            <span class="orange-text">Band : ${currentItem.bandwidth}</span>]`;
+         
+                // Move to the next index, loop back if at the end
+                currentIndex = (currentIndex + 1) % data.length;
+            }
+         })
+         .catch(error => {
+            console.error('Error loading bandwidth information:', error);
+            const bandwidthLabel = document.getElementById('last-update-bandwidth');
+            bandwidthLabel.innerHTML = 'Erreur lors du chargement des informations.';
+         });
+         }        
          
          
          //
          function loadBandwidthSettings() {
          // Fetch clients.json to get the IPs
-         fetch('/clients.json')
+         fetch('/clients.json', {
+            method: 'GET',
+            headers: {
+                'Cache-Control': 'no-cache', // Désactiver le cache
+            },
+            cache: 'no-store', // Ne pas utiliser le cache du navigateur
+         })
+         //fetch('/clients.json')
          .then(response => response.json())
          .then(clients => {
             // Fetch bandwidth.json to get the settings
-            fetch('/bandwidth.json')
+            fetch('/bandwidth.json', {
+            method: 'GET',
+            headers: {
+                'Cache-Control': 'no-cache', // Désactiver le cache
+            },
+            cache: 'no-store', // Ne pas utiliser le cache du navigateur
+            })
+            //fetch('/bandwidth.json')
                 .then(response => response.json())
                 .then(bandwidthSettings => {
                     const settingsTableBody = document.querySelector('#settings-table tbody');

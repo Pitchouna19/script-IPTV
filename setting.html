@@ -519,7 +519,7 @@
                         
                         // Add Forward AT cell
                         const forwardSelect = document.createElement('select');
-                        const forwards = ['5%', '10%', '15%', '20%', '25%', '30%', '35%', '40%', '45%', '50%', '55%', '60%', '65%', '70%', '75%', '80%', '85%', '90%', '95%'];
+                        const forwards = ['5%', '10%', '15%', '20%', '25%', '30%', '35%', '40%', '45%', '50%'];
                         forwards.forEach(forward => {
                             const option = document.createElement('option');
                             option.value = forward;
@@ -533,7 +533,7 @@
                         
                         // Add Bandwidth cell
                         const bandwidthSelect = document.createElement('select');
-                        const bandwidths = ['100.MB', '150.MB', '200.MB', '250.MB', '500.MB', '1000.MB', '1500.MB', '2000.MB'];
+                        const bandwidths = ['100MB', '200MB', '500MB', '1000MB', '1500MB', '2000MB'];
                         bandwidths.forEach(bandwidth => {
                             const option = document.createElement('option');
                             option.value = bandwidth;

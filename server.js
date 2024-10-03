@@ -148,6 +148,20 @@ app.post('/save-nginx-client-config', (req, res) => {
     });
 });
 
+app.post('/save-bandwidth', (req, res) => {
+  const bandwidthData = req.body;
+  const filePath = path.join(__dirname, 'bandwidth.json');
+
+  fs.writeFile(filePath, JSON.stringify(bandwidthData, null, 2), (err) => {
+    if (err) {
+      console.error('Error saving bandwidth.json:', err);
+      return res.status(500).send({ message: 'Error saving bandwidth settings' });
+    }
+
+    res.send({ message: 'Bandwidth settings saved successfully' });
+  });
+});
+
 
 // Démarrer le serveur sur le port 3000
 app.listen(3000, () => {

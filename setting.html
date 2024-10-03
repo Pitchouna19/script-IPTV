@@ -94,6 +94,32 @@
          .settings-button:hover {
          background-color: #e0e0e0;
          }
+         .modal-overlay {
+         position: fixed;
+         top: 0;
+         left: 0;
+         right: 0;
+         bottom: 0;
+         background-color: rgba(0, 0, 0, 0.5);
+         display: flex;
+         justify-content: center;
+         align-items: center;
+         }
+         .modal-content {
+         background-color: white;
+         padding: 20px;
+         border-radius: 8px;
+         width: 80%;
+         max-width: 600px;
+         }
+         .hidden {
+         display: none;
+         }
+         .modal-buttons {
+         margin-top: 20px;
+         display: flex;
+         justify-content: space-between;
+         }
       </style>
    </head>
    <body>
@@ -134,6 +160,36 @@
          </div>
       </div>
       <div id="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999;" onclick="closeModal()"></div>
+      <!-- Nouvelle container BANDWIDTH -->
+      <div class="container">
+         <div class="label-button" style="margin-right: 10px;">BANDWIDTH</div>
+         <div class="spacer"></div>
+         <label id="last-update-bandwidth" style="margin-left: 10px;">Bande passante en attente...</label>
+         <button id="settings-button">SETTING</button>
+      </div>
+      <!-- Nouvelle container Bandwidth -->
+      <div id="settings-modal" class="modal-overlay hidden">
+         <div class="modal-content">
+            <h3>Régler les Serveurs</h3>
+            <table id="settings-table">
+               <thead>
+                  <tr>
+                     <th>IP Address</th>
+                     <th>Type serveur</th>
+                     <th>Forward AT</th>
+                     <th>Bandwidth (MB)</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <!-- Rows will be dynamically added here based on clients.json -->
+               </tbody>
+            </table>
+            <div class="modal-buttons">
+               <button id="close-settings-modal">Close</button>
+               <button id="save-settings-modal">Save</button>
+            </div>
+         </div>
+      </div>
       <script>
          console.log('Script JavaScript chargé'); // Debug: script chargé
          
@@ -342,6 +398,114 @@
          });
          }, 2000); // Délai de 2 secondes avant de faire le fetch
          }
+         
+         // Charger BANDWITH
+         document.getElementById('settings-button').addEventListener('click', function () {
+         document.getElementById('settings-modal').classList.remove('hidden');
+         loadClientData();
+         });
+         
+         document.getElementById('close-settings-modal').addEventListener('click', function () {
+         document.getElementById('settings-modal').classList.add('hidden');
+         });
+         
+         document.getElementById('save-settings-modal').addEventListener('click', function () {
+         saveBandwidthSettings();
+         document.getElementById('settings-modal').classList.add('hidden');
+         });
+         
+         function loadClientData() {
+         fetch('/clients.json')
+         .then(response => response.json())
+         .then(clients => {
+         const tableBody = document.querySelector('#settings-table tbody');
+         tableBody.innerHTML = ''; // Clear existing rows
+         clients.forEach(client => {
+         const row = document.createElement('tr');
+         
+         // IP Address column
+         const ipCell = document.createElement('td');
+         ipCell.textContent = client.ip; // Display the IP address
+         row.appendChild(ipCell);
+         
+         // Type serveur column
+         const typeCell = document.createElement('td');
+         const typeSelect = document.createElement('select');
+         ['VPS U', 'VPS M', 'VPS CT', 'SERVER PH'].forEach(optionValue => {
+          const option = document.createElement('option');
+          option.value = optionValue;
+          option.textContent = optionValue;
+          typeSelect.appendChild(option);
+         });
+         typeCell.appendChild(typeSelect);
+         row.appendChild(typeCell);
+         
+         // Forward AT column
+         const forwardCell = document.createElement('td');
+         const forwardSelect = document.createElement('select');
+         ['5%', '10%', '15%', '20%', '25%', '30%', '35%', '40%', '45%', '50%'].forEach(optionValue => {
+          const option = document.createElement('option');
+          option.value = optionValue;
+          option.textContent = optionValue;
+          forwardSelect.appendChild(option);
+         });
+         forwardCell.appendChild(forwardSelect);
+         row.appendChild(forwardCell);
+         
+         // Bandwidth column
+         const bandwidthCell = document.createElement('td');
+         const bandwidthSelect = document.createElement('select');
+         ['100MB', '200MB', '500MB', '1000MB', '1500MB', '2000MB'].forEach(optionValue => {
+          const option = document.createElement('option');
+          option.value = optionValue;
+          option.textContent = optionValue;
+          bandwidthSelect.appendChild(option);
+         });
+         bandwidthCell.appendChild(bandwidthSelect);
+         row.appendChild(bandwidthCell);
+         
+         tableBody.appendChild(row);
+         });
+         })
+         .catch(error => {
+         console.error('Error loading clients.json:', error);
+         });
+         }
+         
+         function saveBandwidthSettings() {
+         const tableRows = document.querySelectorAll('#settings-table tbody tr');
+         const bandwidthData = [];
+         
+         tableRows.forEach(row => {
+         const ip = row.querySelector('td:nth-child(1)').textContent; // Get the IP from the first cell
+         const typeServeur = row.querySelector('td:nth-child(2) select').value;
+         const forwardAt = row.querySelector('td:nth-child(3) select').value;
+         const bandwidth = row.querySelector('td:nth-child(4) select').value;
+         
+         bandwidthData.push({
+         ip: ip,
+         type_serveur: typeServeur,
+         forward_at: forwardAt,
+         bandwidth: bandwidth
+         });
+         });
+         
+         fetch('/save-bandwidth', {
+         method: 'POST',
+         headers: {
+         'Content-Type': 'application/json'
+         },
+         body: JSON.stringify(bandwidthData)
+         })
+         .then(response => response.json())
+         .then(data => {
+         console.log('Bandwidth settings saved:', data);
+         })
+         .catch(error => {
+         console.error('Error saving bandwidth settings:', error);
+         });
+         }
+         
          
          
          /// Charger les informations Xtream lors du chargement de la page

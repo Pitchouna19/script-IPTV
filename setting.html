@@ -120,6 +120,9 @@
          display: flex;
          justify-content: space-between;
          }
+         .orange-text {
+         color: orange;
+         }
       </style>
    </head>
    <body>
@@ -402,7 +405,8 @@
          // Charger BANDWITH
          document.getElementById('settings-button').addEventListener('click', function () {
          document.getElementById('settings-modal').classList.remove('hidden');
-         loadClientData();
+         //loadClientData();
+         loadBandwidthSettings();
          });
          
          document.getElementById('close-settings-modal').addEventListener('click', function () {
@@ -413,64 +417,125 @@
          saveBandwidthSettings();
          document.getElementById('settings-modal').classList.add('hidden');
          });
+         //
          
-         function loadClientData() {
+         let bandwidthData = [];
+         let currentIndex = 0;
+
+         function loadBandwidthInfo() {
+             fetch('/bandwidth.json')
+                 .then(response => response.json())
+                 .then(data => {
+                     bandwidthData = data;
+                     if (bandwidthData.length === 0) {
+                         const bandwidthLabel = document.getElementById('last-update-bandwidth');
+                         bandwidthLabel.innerHTML = 'Aucune information disponible.';
+                         return;
+                     }
+                     updateBandwidthLabel(); // Initial update
+                     setInterval(updateBandwidthLabel, 5000); // Update every 5 seconds
+                 })
+                 .catch(error => {
+                     console.error('Error loading bandwidth information:', error);
+                     const bandwidthLabel = document.getElementById('last-update-bandwidth');
+                     bandwidthLabel.innerHTML = 'Erreur lors du chargement des informations.';
+                 });
+         }
+
+         function updateBandwidthLabel() {
+             const bandwidthLabel = document.getElementById('last-update-bandwidth');
+
+             // Format the current item to display
+             const currentItem = bandwidthData[currentIndex];
+             if (currentItem) {
+                 bandwidthLabel.innerHTML = `[${currentItem.type_serveur} | 
+                                             <span class="orange-text">ip : ${currentItem.ip}</span> | 
+                                             <span class="orange-text">FoT : ${currentItem.forward_at}</span> | 
+                                             <span class="orange-text">Band : ${currentItem.bandwidth}</span>]`;
+                 // Move to the next index, loop back if at the end
+                 currentIndex = (currentIndex + 1) % bandwidthData.length;
+             }
+         }         
+         
+         
+         //
+         function loadBandwidthSettings() {
+         // Fetch clients.json to get the IPs
          fetch('/clients.json')
          .then(response => response.json())
          .then(clients => {
-         const tableBody = document.querySelector('#settings-table tbody');
-         tableBody.innerHTML = ''; // Clear existing rows
-         clients.forEach(client => {
-         const row = document.createElement('tr');
-         
-         // IP Address column
-         const ipCell = document.createElement('td');
-         ipCell.textContent = client.ip; // Display the IP address
-         row.appendChild(ipCell);
-         
-         // Type serveur column
-         const typeCell = document.createElement('td');
-         const typeSelect = document.createElement('select');
-         ['VPS U', 'VPS M', 'VPS CT', 'SERVER PH'].forEach(optionValue => {
-          const option = document.createElement('option');
-          option.value = optionValue;
-          option.textContent = optionValue;
-          typeSelect.appendChild(option);
-         });
-         typeCell.appendChild(typeSelect);
-         row.appendChild(typeCell);
-         
-         // Forward AT column
-         const forwardCell = document.createElement('td');
-         const forwardSelect = document.createElement('select');
-         ['5%', '10%', '15%', '20%', '25%', '30%', '35%', '40%', '45%', '50%'].forEach(optionValue => {
-          const option = document.createElement('option');
-          option.value = optionValue;
-          option.textContent = optionValue;
-          forwardSelect.appendChild(option);
-         });
-         forwardCell.appendChild(forwardSelect);
-         row.appendChild(forwardCell);
-         
-         // Bandwidth column
-         const bandwidthCell = document.createElement('td');
-         const bandwidthSelect = document.createElement('select');
-         ['100MB', '200MB', '500MB', '1000MB', '1500MB', '2000MB'].forEach(optionValue => {
-          const option = document.createElement('option');
-          option.value = optionValue;
-          option.textContent = optionValue;
-          bandwidthSelect.appendChild(option);
-         });
-         bandwidthCell.appendChild(bandwidthSelect);
-         row.appendChild(bandwidthCell);
-         
-         tableBody.appendChild(row);
-         });
+            // Fetch bandwidth.json to get the settings
+            fetch('/bandwidth.json')
+                .then(response => response.json())
+                .then(bandwidthSettings => {
+                    const settingsTableBody = document.querySelector('#settings-table tbody');
+                    settingsTableBody.innerHTML = ''; // Clear existing rows
+                    
+                    clients.forEach(client => {
+                        const bandwidthSetting = bandwidthSettings.find(b => b.ip === client.ip) || {};
+                        
+                        // Create a new row for each client IP
+                        const row = document.createElement('tr');
+                        
+                        // Add IP cell
+                        const ipCell = document.createElement('td');
+                        ipCell.textContent = client.ip;
+                        row.appendChild(ipCell);
+                        
+                        // Add Server Type cell
+                        const typeSelect = document.createElement('select');
+                        const types = ['VPS U', 'VPS M', 'VPS CT', 'SERVER PH'];
+                        types.forEach(type => {
+                            const option = document.createElement('option');
+                            option.value = type;
+                            option.textContent = type;
+                            if (bandwidthSetting.type_serveur === type) option.selected = true;
+                            typeSelect.appendChild(option);
+                        });
+                        const typeCell = document.createElement('td');
+                        typeCell.appendChild(typeSelect);
+                        row.appendChild(typeCell);
+                        
+                        // Add Forward AT cell
+                        const forwardSelect = document.createElement('select');
+                        const forwards = ['5%', '10%', '15%', '20%', '25%', '30%', '35%', '40%', '45%', '50%'];
+                        forwards.forEach(forward => {
+                            const option = document.createElement('option');
+                            option.value = forward;
+                            option.textContent = forward;
+                            if (bandwidthSetting.forward_at === forward) option.selected = true;
+                            forwardSelect.appendChild(option);
+                        });
+                        const forwardCell = document.createElement('td');
+                        forwardCell.appendChild(forwardSelect);
+                        row.appendChild(forwardCell);
+                        
+                        // Add Bandwidth cell
+                        const bandwidthSelect = document.createElement('select');
+                        const bandwidths = ['100MB', '200MB', '500MB', '1000MB', '1500MB', '2000MB'];
+                        bandwidths.forEach(bandwidth => {
+                            const option = document.createElement('option');
+                            option.value = bandwidth;
+                            option.textContent = bandwidth;
+                            if (bandwidthSetting.bandwidth === bandwidth) option.selected = true;
+                            bandwidthSelect.appendChild(option);
+                        });
+                        const bandwidthCell = document.createElement('td');
+                        bandwidthCell.appendChild(bandwidthSelect);
+                        row.appendChild(bandwidthCell);
+                        
+                        settingsTableBody.appendChild(row); // Append the row to the table body
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching bandwidth settings:', error);
+                });
          })
          .catch(error => {
-         console.error('Error loading clients.json:', error);
+            console.error('Error fetching clients:', error);
          });
          }
+         
          
          function saveBandwidthSettings() {
          const tableRows = document.querySelectorAll('#settings-table tbody tr');
@@ -513,6 +578,7 @@
             updateXtreamInfo();
             updateLastModified(); // Charger la dernière modification
             updateNginxInfo(); // Charger les informations NGINX
+            loadBandwidthInfo(); // Charger BandWidth 
          });
          
       </script>

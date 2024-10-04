@@ -339,9 +339,17 @@
                 if (monitoringData[client.ip] && monitoringData[client.ip].details.clients.length > 0) {
                     monitoringData[client.ip].details.clients.forEach(stream => {
                         if (stream.publish === false) { // Vérifier si publish est false
+                            // On crée un élément image pour le drapeau
+                            const imgElement = document.createElement('img');
+                            imgElement.alt = 'Flag';
+                            imgElement.src = 'https://flagcdn.com/32x24/be.png'; // URL par défaut avant la mise à jour
+
+                            // Appel asynchrone pour mettre à jour l'URL du drapeau après récupération
+                            loadFlag(stream.ip, imgElement);
+
                             clientRows += `
                             <tr>
-                                <td>"Pays"</td>
+                                <td>${imgElement.outerHTML}</td> <!-- Ajoute l'élément img pour le drapeau -->
                                 <td>${stream.name || 'N/A'}</td>
                                 <td>${stream.ip || 'N/A'}</td>
                                 <td>${stream.url || 'N/A'}</td>                            
@@ -354,6 +362,7 @@
                         <td colspan="6">Pas de streams disponibles</td>
                     </tr>`;
                 }
+
          
                 output += `
                 <div class="client-container">
@@ -574,6 +583,20 @@
          
          /////////////////////////////////////////////////////////////////////////////////////////
          
+         // Fonction non asynchrone pour obtenir l'origine d'une IP
+
+        // Fonction pour charger les drapeaux
+        function loadFlag(ip, imgElement) {
+            fetch(`/get-country-flag?ip=${ip}`)
+                .then(response => response.json())
+                .then(data => {
+                    imgElement.src = data.flagUrl; // Met à jour l'image une fois l'URL récupérée
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    imgElement.src = 'https://flagcdn.com/32x24/be.png'; // Mettre un drapeau par défaut en cas d'erreur
+                });
+        }
          
       </script>
    </body>

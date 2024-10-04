@@ -162,6 +162,20 @@ app.post('/save-bandwidth', (req, res) => {
   });
 });
 
+app.get('/get-country-flag', (req, res) => {
+    const ip = req.query.ip;
+    try {
+        const response = execSync(`curl -s https://ipinfo.io/${ip}/json`);
+        const data = JSON.parse(response);
+        const countryCode = data.country || 'be';
+        const flagUrl = `https://flagcdn.com/32x24/${countryCode.toLowerCase()}.png`;
+        res.json({ flagUrl });
+    } catch (error) {
+        console.error('Erreur lors de la récupération des données:', error);
+        res.json({ flagUrl: 'https://flagcdn.com/32x24/be.png' });
+    }
+});
+
 
 // Démarrer le serveur sur le port 3000
 app.listen(3000, () => {

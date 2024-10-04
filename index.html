@@ -128,6 +128,73 @@
          @media (max-width: 480px) {
          /* Pas de modifications nécessaires ici */
          }
+         .streams-table {
+         width: 100%;
+         border-collapse: collapse;
+         margin: 10px 0;
+         }
+         .streams-table {
+         width: 100%;
+         border-collapse: collapse;
+         margin: 10px 0;
+         }
+         .streams-table th {
+         background-color: #555;
+         color: white;
+         padding: 10px;
+         text-align: left;
+         }
+         .streams-table td {
+         padding: 10px;
+         border: 1px solid #ccc;
+         }
+         .streams-table tr:nth-child(even) {
+         background-color: #f2f2f2;
+         }
+         .streams-table tr:nth-child(odd) {
+         background-color: #e9e9e9;
+         }
+         /* Style responsive */
+         @media (max-width: 768px) {
+         .streams-table th, .streams-table td {
+         padding: 5px;
+         }
+         }
+         .clients-table {
+         width: 100%;
+         border-collapse: collapse;
+         margin: 10px 0;
+         }
+         .clients-table {
+         width: 100%;
+         border-collapse: collapse;
+         margin: 10px 0;
+         }
+         .clients-table th {
+         background-color: #555;
+         color: white;
+         padding: 10px;
+         text-align: left;
+         }
+         .clients-table td {
+         padding: 10px;
+         border: 1px solid #ccc;
+         }
+         .clients-table tr:nth-child(even) {
+         background-color: #f2f2f2;
+         }
+         .clients-table tr:nth-child(odd) {
+         background-color: #e9e9e9;
+         }
+         /* Style responsive */
+         @media (max-width: 768px) {
+         .clients-table th, .clients-table td {
+         padding: 5px;
+         }
+         }
+         .hidden {
+         display: none;
+         }
       </style>
    </head>
    <body>
@@ -162,99 +229,234 @@
          let monitoringData = {};
          
          function loadMonitoringData() {
-             console.log('Chargement des données de monitoring...');
-             const url = '/monitoring.json?' + new Date().getTime();
-             fetch(url)
-                 .then(response => {
-                     if (!response.ok) {
-                         throw new Error('Réponse du réseau non valide');
-                     }
-                     return response.json();
-                 })
-                 .then(servers => {
-                     console.log('Données de monitoring chargées:', servers);
-                     servers.forEach(server => {
-                         const serverIp = server.server;
-                         if (server.vhosts.length > 0) {
-                             const vhost = server.vhosts[0];
-                             monitoringData[serverIp] = {
-                                 con_clients: vhost.clients -1,
-                                 con_streams: vhost.streams
-                             };
-                         } else {
-                             monitoringData[serverIp] = { con_clients: 0, con_streams: 0 };
-                         }
-                     });
-                 })
-                 .catch(error => {
-                     console.error('Erreur lors du chargement des données de monitoring:', error);
-                 });
+         console.log('Chargement des données de monitoring...');
+         const url = '/monitoring.json?' + new Date().getTime();
+         
+         fetch(url)
+         .then(response => {
+            if (!response.ok) {
+                throw new Error('Réponse du réseau non valide');
+            }
+            return response.json();
+         })
+         .then(servers => {
+            console.log('Données de monitoring chargées:', servers);
+            
+            servers.forEach(server => {
+                const serverIp = server.server;
+                let serverData = {
+                    vhosts: [],
+                    clients: [],
+                    streams: []
+                };
+                
+                // Load vhosts
+                if (server.vhosts.length > 0) {
+                    const vhost = server.vhosts[0];
+                    serverData.vhosts = server.vhosts; // Store all vhosts
+                    
+                    monitoringData[serverIp] = {
+                        con_clients: vhost.clients - 1,
+                        con_streams: vhost.streams
+                    };
+                } else {
+                    monitoringData[serverIp] = { con_clients: 0, con_streams: 0 };
+                }
+                
+                // Load clients
+                if (server.clients && server.clients.length > 0) {
+                    serverData.clients = server.clients; // Store all clients
+                }
+                
+                // Load streams
+                if (server.streams && server.streams.length > 0) {
+                    serverData.streams = server.streams; // Store all streams
+                }
+                
+                // Store the complete server data for later use
+                monitoringData[serverIp].details = serverData;
+            });
+         })
+         .catch(error => {
+            console.error('Erreur lors du chargement des données de monitoring:', error);
+         });
          }
+         
+         
+         let clientList = [];
          
          function loadClientData() {
-             console.log('Chargement des données des clients...');
-             const url = '/clients.json?' + new Date().getTime();
-             fetch(url)
-                 .then(response => {
-                     if (!response.ok) {
-                         throw new Error('Réponse du réseau non valide');
-                     }
-                     return response.json();
-                 })
-                 .then(clients => {
-                     console.log('Données chargées:', clients);
-                     let output = '<h2>Liste des Clients MQTT</h2>';
-                     clients.forEach(client => {
-                         maxTrafficIn = adjustMaxTraffic(client.network_in, maxTrafficIn);
-                         maxTrafficOut = adjustMaxTraffic(client.network_out, maxTrafficOut);
+         console.log('Chargement des données des clients...');
+         // Sauvegarder l'état des tables avant le rechargement
+         saveStreamsTableState();
+         saveClientsTableState();
          
-                         const inPercentage = (client.network_in / maxTrafficIn) * 100;
-                         const outPercentage = (client.network_out / maxTrafficOut) * 100;
+         const url = '/clients.json?' + new Date().getTime();
+         fetch(url)
+         .then(response => {
+            if (!response.ok) {
+                throw new Error('Réponse du réseau non valide');
+            }
+            return response.json();
+         })
+         .then(clients => {
+            clientList = clients; // Populate clientList
+            console.log('Données chargées:', clients);
+            let output = '<h2>Liste des Clients MQTT</h2>';
+            clients.forEach((client, index) => {
+                maxTrafficIn = adjustMaxTraffic(client.network_in, maxTrafficIn);
+                maxTrafficOut = adjustMaxTraffic(client.network_out, maxTrafficOut);
          
-                         const monitoringInfo = monitoringData[client.ip] || { con_streams: 0, con_clients: 0 };
+                const inPercentage = (client.network_in / maxTrafficIn) * 100;
+                const outPercentage = (client.network_out / maxTrafficOut) * 100;
          
-                         output += `
-                         <div class="client-container">
-                             <div class="progress-container">
-                                 <p><strong>IP:</strong> ${client.ip}</p>
+                const monitoringInfo = monitoringData[client.ip] || { con_streams: 0, con_clients: 0 };
          
-                                 <!-- Charge CPU -->
-                                 <div class="progress-with-label">
-                                     <div class="label">Charge CPU:</div>
-                                     <div class="progress-bar cpu-load">
-                                         <div style="width: ${client.cpu_load}%;">${client.cpu_load}%</div>
-                                     </div>
-                                 </div>
+                // Create table rows for streams dynamically
+                // Utiliser les streams provenant de monitoringData
+                let streamRows = '';
+                if (monitoringData[client.ip] && monitoringData[client.ip].details.streams.length > 0) {
+                    monitoringData[client.ip].details.streams.forEach(stream => {
+                        streamRows += `
+                        <tr>
+                            <td>${stream.id || 'N/A'}</td>
+                            <td>${stream.name || 'N/A'}</td>
+                            <td>${stream.url || 'N/A'}</td>
+                            <td>${stream.audio ? stream.audio.codec : 'N/A'}</td>
+                            <td>${stream.video ? stream.video.codec : 'N/A'}</td>
+                            <td>${stream.clients || 'N/A'}</td>
+                        </tr>`;
+                    });
+                } else {
+                    streamRows = `
+                    <tr>
+                        <td colspan="6">Pas de streams disponibles</td>
+                    </tr>`;
+                }
          
-                                 <!-- Trafic IN -->
-                                 <div class="progress-with-label">
-                                     <div class="label">Trafic IN:</div>
-                                     <div class="progress-bar network-in">
-                                         <div style="width: ${inPercentage}%;">${client.network_in} kbps</div>
-                                     </div>
-                                 </div>
+                // Utiliser les streams provenant de monitoringData
+                let clientRows = '';
+                if (monitoringData[client.ip] && monitoringData[client.ip].details.clients.length > 0) {
+                    monitoringData[client.ip].details.clients.forEach(stream => {
+                        if (stream.publish === false) { // Vérifier si publish est false
+                            clientRows += `
+                            <tr>
+                                <td>"Pays"</td>
+                                <td>${stream.name || 'N/A'}</td>
+                                <td>${stream.ip || 'N/A'}</td>
+                                <td>${stream.url || 'N/A'}</td>                            
+                            </tr>`;
+                        }
+                    });
+                } else {
+                    clientRows = `
+                    <tr>
+                        <td colspan="6">Pas de streams disponibles</td>
+                    </tr>`;
+                }
          
-                                 <!-- Trafic OUT -->
-                                 <div class="progress-with-label">
-                                     <div class="label">Trafic OUT:</div>
-                                     <div class="progress-bar network-out">
-                                         <div style="width: ${outPercentage}%;">${client.network_out} kbps</div>
-                                     </div>
-                                 </div>
+                output += `
+                <div class="client-container">
+         <div class="progress-container">
+         <p><strong>IP:</strong> ${client.ip}</p>
          
-                                 <div class="info-client-container">
-                                     <button>Streams: ${monitoringInfo.con_streams}</button>
-                                     <button>Clients Connectés: ${Math.max(0, monitoringInfo.con_clients)}</button>                                    
-                                 </div>
-                             </div>
-                         </div>`;
-                     });
-                     document.getElementById('clientData').innerHTML = output;
-                 })
-                 .catch(error => {
-                     console.error('Erreur lors du chargement des données des clients:', error);
-                 });
+         <!-- Charge CPU -->
+         <div class="progress-with-label">
+            <div class="label">Charge CPU:</div>
+            <div class="progress-bar cpu-load">
+                <div style="width: ${client.cpu_load}%;">${client.cpu_load}%</div>
+            </div>
+         </div>
+         
+         <!-- Trafic IN -->
+         <div class="progress-with-label">
+            <div class="label">Trafic IN:</div>
+            <div class="progress-bar network-in">
+                <div style="width: ${inPercentage}%;">${client.network_in} kbps</div>
+            </div>
+         </div>
+         
+         <!-- Trafic OUT -->
+         <div class="progress-with-label">
+            <div class="label">Trafic OUT:</div>
+            <div class="progress-bar network-out">
+                <div style="width: ${outPercentage}%;">${client.network_out} kbps</div>
+            </div>
+         </div>
+         
+         <!-- Informations du client -->
+         <div class="info-client-container">
+            <button class="streams-button" id="streams-btn-${client.ip}" onclick="toggleStreamsTable('${client.ip}', this)" data-visible="false" data-streams="${monitoringInfo.con_streams}">
+                Streams: ${monitoringInfo.con_streams}
+            </button>
+            <button class="clients-button" id="clients-btn-${client.ip}" onclick="toggleClientsTable('${client.ip}', this)" data-visible="false" data-streams="${monitoringInfo.con_clients}">
+                Clients Connectés: ${Math.max(0, monitoringInfo.con_clients)}
+            </button>     
+         </div>
+         
+         <!-- Table pour les streams (initialement cachée) -->
+         <div id="streams-table-${client.ip}" style="display: none;" class="streams-table-container">
+            <table class="streams-table">
+                <thead>
+                    <tr>
+                        <th>id</th>
+                        <th>name</th>
+                        <th>url</th>
+                        <th>audio:[codec]</th>
+                        <th>video:[codec]</th>
+                        <th>clients</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${streamRows}
+                </tbody>
+            </table>
+         </div>
+         
+         <!-- Table pour les Clients (initialement cachée) -->
+         <div id="clients-table-${client.ip}" style="display: none;" class="clients-table-container">
+            <table class="clients-table">
+                <thead>
+                    <tr>
+                        <th>Pays</th>
+                        <th>name</th>
+                        <th>ip</th>
+                        <th>url</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${clientRows}
+                </tbody>
+            </table>
+         </div>
+         
+         </div>
+         </div>
+                </div>`;
+            });
+            document.getElementById('clientData').innerHTML = output;
+            restoreStreamsTableState(clientList); // Restore after rendering
+            restoreClientsTableState(clientList); // Restore after rendering
+         })
+         .catch(error => {
+            console.error('Erreur lors du chargement des données des clients:', error);
+         });
          }
+         
+         // Function to toggle visibility of the textarea
+         function toggleExpand(index) {
+         const expandSection = document.getElementById(`expand-section-${index}`);
+         const clientContainer = document.getElementById(`client-${index}`);
+         
+         if (expandSection.style.display === 'none') {
+         expandSection.style.display = 'block';
+         clientContainer.style.height = 'auto'; // Adjust container height when expanded
+         } else {
+         expandSection.style.display = 'none';
+         clientContainer.style.height = ''; // Reset height when collapsed
+         }
+         }
+         
          
          loadMonitoringData();
          loadClientData();
@@ -281,6 +483,97 @@
          }
          }
          }
+         
+         //////////////////////////////////////////////////////////////////////////////////////////
+         function toggleStreamsTable(ip, button) {
+         const table = document.getElementById(`streams-table-${ip}`);
+         const isVisible = table.style.display === 'block';
+         
+         // Basculer la visibilité de la table
+         table.style.display = isVisible ? 'none' : 'block';
+         
+         // Mettre à jour l'étiquette du bouton et sauvegarder l'état
+         button.textContent = isVisible ? `Streams: ${button.dataset.streams}` : 'Hide Streams';
+         button.dataset.visible = !isVisible;
+         }
+         
+         function toggleClientsTable(ip, button) {
+         const table = document.getElementById(`clients-table-${ip}`);
+         const isVisible = table.style.display === 'block';
+         
+         // Basculer la visibilité de la table
+         table.style.display = isVisible ? 'none' : 'block';
+         
+         // Mettre à jour l'étiquette du bouton et sauvegarder l'état
+         button.textContent = isVisible ? `Clients Connectés: ${button.dataset.streams}` : 'Hide Clients';
+         button.dataset.visible = !isVisible;
+         }
+         
+         //////////////////////////////////////////////////////////////////////////////////////////////
+         
+         function restoreStreamsTableState(clientList) {
+            clientList.forEach(client => {
+                const button = document.getElementById(`streams-btn-${client.ip}`);
+                const table = document.getElementById(`streams-table-${client.ip}`);
+                
+                if (button && streamsState[client.ip]) {
+                    console.log(`Restoring streams table for client ${client.ip}`);
+                    table.style.display = 'block';
+                    button.textContent = 'Hide Streams';
+                    button.dataset.visible = 'true';
+                } else if (button) {
+                    console.log(`Hiding streams table for client ${client.ip}`);
+                    table.style.display = 'none';
+                    button.textContent = `Streams: ${button.dataset.streams}`;
+                    button.dataset.visible = 'false';
+                }
+            });
+         }
+         
+         function restoreClientsTableState(clientList) {
+            clientList.forEach(client => {
+                const button = document.getElementById(`clients-btn-${client.ip}`);
+                const table = document.getElementById(`clients-table-${client.ip}`);
+                
+                if (button && clientsState[client.ip]) {
+                    console.log(`Restoring clients table for client ${client.ip}`);
+                    table.style.display = 'block';
+                    button.textContent = 'Hide Clients';
+                    button.dataset.visible = 'true';
+                } else if (button) {
+                    console.log(`Hiding clients table for client ${client.ip}`);
+                    table.style.display = 'none';
+                    button.textContent = `Clients Connectés: ${button.dataset.streams}`;
+                    button.dataset.visible = 'false';
+                }
+            });
+         }
+         
+         //////////////////////////////////////////////////////////////////////////////////////
+         
+            let streamsState = {}; // Object to store the state of each stream table
+            let clientsState = {}; // Object to store the state of each clients table
+         
+            function saveStreamsTableState() {
+                clientList.forEach(client => {
+                    const button = document.getElementById(`streams-btn-${client.ip}`);
+                    if (button) {
+                        streamsState[client.ip] = button.dataset.visible === 'true'; // Save the visibility state
+                    }
+                });
+            }
+         
+            function saveClientsTableState() {
+                clientList.forEach(client => {
+                    const button = document.getElementById(`clients-btn-${client.ip}`);
+                    if (button) {
+                        clientsState[client.ip] = button.dataset.visible === 'true'; // Save the visibility state
+                    }
+                });
+            }
+         
+         /////////////////////////////////////////////////////////////////////////////////////////
+         
          
       </script>
    </body>

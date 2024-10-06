@@ -6,7 +6,7 @@ MQTT_USER="USPAS"
 MQTT_PASS="PASW"
 TOPIC="/client/monitoring"
 
-CACHE_FILE="geo_cache.json"
+CACHE_FILE="/var/www/html/geo_cache.json"
 
 # Fonction pour lire le cache
 read_cache() {
@@ -113,8 +113,6 @@ while true; do
             for ip in $ip_addresses; do
                 echo "Processing IP: $ip"
 
-                echo "#################################################################"
-
                 # Vérifier si l'adresse IP est locale
                 if [[ "$ip" == 10.* || "$ip" == 172.* || "$ip" == 192.168.* ]]; then
                     echo "IP $ip is local, skipping processing"
@@ -127,7 +125,7 @@ while true; do
                         # Si l'adresse IP n'est pas dans le cache, faire l'appel curl
                         echo "IP $ip not found in cache, making API call..."
                         geo_info=$(curl -s "https://get.geojs.io/v1/ip/geo/$ip.json")
-                        country=$(echo "$geo_info" | jq -r '.country // "-"')
+                        country=$(echo "$geo_info" | jq -r '.country_code // "-"')
 
                         # Mettre à jour le cache
                         cache=$(echo "$cache" | jq --arg ip "$ip" --arg country "$country" '. + {($ip): {country: $country}}')
@@ -156,10 +154,10 @@ while true; do
         fi
 
         # Formater le JSON en une seule ligne
-        JSON_LIST_SINGLE_LINE=$(echo "$JSON_LIST" | jq -c .)
+        JSON_LIST=$(echo "$JSON_LIST" | jq -c .)
 
         # Publier le JSON formaté sur le broker MQTT
-        mosquitto_pub -h "$BROKER_IP" -u "$MQTT_USER" -P "$MQTT_PASS" -t "$TOPIC" -m "$JSON_LIST_SINGLE_LINE"
+        mosquitto_pub -h "$BROKER_IP" -u "$MQTT_USER" -P "$MQTT_PASS" -t "$TOPIC" -m "$JSON_LIST"
 
         # Afficher un message de succès
         if [ $? -eq 0 ]; then

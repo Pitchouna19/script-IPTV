@@ -321,10 +321,10 @@
                         <tr>
                             <td>${stream.id || 'N/A'}</td>
                             <td>${stream.name || 'N/A'}</td>
-                            <td>${stream.url || 'N/A'}</td>
-                            <td>${stream.audio ? stream.audio.codec : 'N/A'}</td>
-                            <td>${stream.video ? stream.video.codec : 'N/A'}</td>
-                            <td>${stream.clients || 'N/A'}</td>
+                            <td style="color: orange;">${stream.video ? stream.video.width : 'N/A'} | ${stream.video ? stream.video.height : 'N/A'}</td>
+                            <td>${stream.video ? stream.video.codec : 'N/A'}|${stream.video ? stream.video.profile : 'N/A'}|level:${stream.video ? stream.video.level : 'N/A'}</td>
+                            <td>${stream.audio ? stream.audio.codec : 'N/A'} | ${stream.audio ? stream.audio.sample_rate : 'N/A'} | ch:${stream.audio ? stream.audio.channel : 'N/A'}                            
+                            <td>${typeof stream.clients === 'number' ? stream.clients - 1 : 'N/A'}</td>
                         </tr>`;
                     });
                 } else {
@@ -338,24 +338,37 @@
                 let clientRows = '';
                 if (monitoringData[client.ip] && monitoringData[client.ip].details.clients.length > 0) {
                     monitoringData[client.ip].details.clients.forEach(stream => {
-                        if (stream.publish === false) { // Vérifier si publish est false
-                            // On crée un élément image pour le drapeau
-                            const imgElement = document.createElement('img');
-                            imgElement.alt = 'Flag';
-                            imgElement.src = 'https://flagcdn.com/32x24/be.png'; // URL par défaut avant la mise à jour
 
-                            // Appel asynchrone pour mettre à jour l'URL du drapeau après récupération
-                            loadFlag(stream.ip, imgElement);
+                        //console.log("Processing stream:", stream); // Debug: Voir les détails du stream
+
+                        let countryCode = stream.country && stream.country !== '-' ? stream.country.toLowerCase() : 'ge'; 
+                        console.log("Country code:", countryCode); // Debug: Afficher le code du pays
+                       
+                        let html = `<img src="https://flagcdn.com/32x24/${countryCode}.png" alt="Country Flag">`;
+
+                        if (stream.publish === false) { // Vérifier si publish est false
+                            
 
                             clientRows += `
                             <tr>
-                                <td>${imgElement.outerHTML}</td> <!-- Ajoute l'élément img pour le drapeau -->
-                                <td>${stream.name || 'N/A'}</td>
-                                <td>${stream.ip || 'N/A'}</td>
-                                <td>${stream.url || 'N/A'}</td>                            
+                                <td>${html}</td>
+                                <td style="color: black; font-weight: bold;">${stream.name || 'N/A'}</td>
+                                <td style="color: black; font-weight: bold;">${stream.ip || 'N/A'}</td>
+                                <td>
+                                    <a href="${stream.tcUrl ? stream.tcUrl.replace(/(http:\/\/[^/]+)/, '$1:8080') : '#'}" target="_blank">
+                                        ${stream.tcUrl ? stream.tcUrl.replace(/(http:\/\/[^/]+)/, '$1:8080') : 'N/A'}/${stream.name || 'N/A'}
+                                    </a>
+                                </td>
+                                <td style="color: green; font-weight: bold;">${stream.type || 'N/A'}</td>
+                                <td style="color: black; font-weight: bold;">
+                                    ${stream.alive ? formatTime(stream.alive) : 'N/A'}
+                                </td>                            
                             </tr>`;
                         }
                     });
+
+                    console.log("Generated rows:", clientRows); // Debug: Voir les lignes générées
+
                 } else {
                     clientRows = `
                     <tr>
@@ -410,10 +423,10 @@
                     <tr>
                         <th>id</th>
                         <th>name</th>
-                        <th>url</th>
-                        <th>audio:[codec]</th>
+                        <th>ecran:[format]</th>
                         <th>video:[codec]</th>
-                        <th>clients</th>
+                        <th>audio:[codec]</th>
+                        <th>clients/stream</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -428,9 +441,11 @@
                 <thead>
                     <tr>
                         <th>Pays</th>
-                        <th>name</th>
-                        <th>ip</th>
-                        <th>url</th>
+                        <th>Name</th>
+                        <th>ip|client</th>
+                        <th>Url|Stream</th>
+                        <th>Type|Ecaps</th>                        
+                        <th>Time|alive</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -585,17 +600,12 @@
          
          // Fonction non asynchrone pour obtenir l'origine d'une IP
 
-        // Fonction pour charger les drapeaux
-        function loadFlag(ip, imgElement) {
-            fetch(`/get-country-flag?ip=${ip}`)
-                .then(response => response.json())
-                .then(data => {
-                    imgElement.src = data.flagUrl; // Met à jour l'image une fois l'URL récupérée
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    imgElement.src = 'https://flagcdn.com/32x24/be.png'; // Mettre un drapeau par défaut en cas d'erreur
-                });
+        function formatTime(seconds) {
+            seconds = Math.floor(seconds); // Enlever les millisecondes
+            const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${s}`;
         }
          
       </script>

@@ -170,7 +170,7 @@ app.post('/cancel-clients', (req, res) => {
     console.log(`Requête pour Client IP: ${clientIp}, Type: ${type}, Action: ${action}, Stream ID: ${streamId}`);
 
     // Vérifier si l'action est 'cancel'
-    if (action === 'reload') {
+    if (action === 'cancel') {
         // Construire l'URL pour la commande curl
         const curlCommand = `curl -s -X DELETE http://${clientIp}:1985/api/v1/${type}/${streamId}`;
 
@@ -199,7 +199,7 @@ app.post('/cancel-clients', (req, res) => {
                 return res.status(500).json({ success: false, message: 'Réponse invalide reçue du client' });
             }
         });
-    } else if (action === 'cancel') {
+    } else if (action === 'reload') {
         // Pour l'instant, aucune action n'est effectuée pour 'reload'
         console.log('Aucune action définie pour "reload" pour le moment.');
         return res.json({ success: true, message: 'Aucune action pour "reload" pour le moment.' });

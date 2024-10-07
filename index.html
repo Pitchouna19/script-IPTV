@@ -656,7 +656,12 @@
                  console.log('Réponse du serveur:', result);
                  // Tu peux faire quelque chose avec le retour, comme une notification
                  if (result.success) {
-                     alert(`Action ${action} sur le stream réussie.`);
+                     if (action === 'cancel') {
+                        alert(`Action reload sur le stream réussie.`);
+                     } else {
+                        alert(`Action cancel sur le stream réussie.`);
+                     }
+                     
                  } else {
                      alert(`Erreur: ${result.message}`);
                  }

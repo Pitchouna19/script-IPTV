@@ -165,38 +165,49 @@ app.post('/save-bandwidth', (req, res) => {
 
 // Route pour recevoir la requête POST
 app.post('/cancel-clients', (req, res) => {
-    const { clientIp, type, streamId } = req.body;
+    const { clientIp, type, action, streamId } = req.body;
 
-    console.log(`Annulation pour Client IP: ${clientIp}, Type: ${type}, Stream ID: ${streamId}`);
+    console.log(`Requête pour Client IP: ${clientIp}, Type: ${type}, Action: ${action}, Stream ID: ${streamId}`);
 
-    // Construire l'URL pour la commande curl
-    const curlCommand = `curl -s -X DELETE http://${clientIp}:1985/api/v1/${type}/${streamId}`;
+    // Vérifier si l'action est 'cancel'
+    if (action === 'cancel') {
+        // Construire l'URL pour la commande curl
+        const curlCommand = `curl -s -X DELETE http://${clientIp}:1985/api/v1/${type}/${streamId}`;
 
-    // Exécuter la commande curl
-    exec(curlCommand, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Erreur lors de l'exécution de la commande: ${error.message}`);
-            return res.status(500).json({ success: false, message: 'Erreur lors de la suppression du client' });
-        }
-
-        // Analyser la réponse JSON renvoyée par curl
-        try {
-            const jsonResponse = JSON.parse(stdout);  // On s'attend à une réponse JSON pure ici
-
-            // Vérifier si le code est égal à 0
-            if (jsonResponse.code === 0) {
-                console.log('Client annulé avec succès');
-                return res.json({ success: true, message: 'Client annulé avec succès' });
-            } else {
-                console.error('Erreur lors de l\'annulation du client');
-                return res.status(400).json({ success: false, message: 'Erreur lors de l\'annulation du client' });
+        // Exécuter la commande curl
+        exec(curlCommand, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Erreur lors de l'exécution de la commande: ${error.message}`);
+                return res.status(500).json({ success: false, message: 'Erreur lors de la suppression du client' });
             }
-        } catch (parseError) {
-            console.error('Erreur de parsing JSON:', parseError);
-            console.log('Réponse reçue:', stdout);  // Afficher la réponse brute pour déboguer si besoin
-            return res.status(500).json({ success: false, message: 'Réponse invalide reçue du client' });
-        }
-    });
+
+            // Analyser la réponse JSON renvoyée par curl
+            try {
+                const jsonResponse = JSON.parse(stdout);  // On s'attend à une réponse JSON pure ici
+
+                // Vérifier si le code est égal à 0
+                if (jsonResponse.code === 0) {
+                    console.log('Client annulé avec succès');
+                    return res.json({ success: true, message: 'Client annulé avec succès' });
+                } else {
+                    console.error('Erreur lors de l\'annulation du client');
+                    return res.status(400).json({ success: false, message: 'Erreur lors de l\'annulation du client' });
+                }
+            } catch (parseError) {
+                console.error('Erreur de parsing JSON:', parseError);
+                console.log('Réponse reçue:', stdout);  // Afficher la réponse brute pour déboguer si besoin
+                return res.status(500).json({ success: false, message: 'Réponse invalide reçue du client' });
+            }
+        });
+    } else if (action === 'reload') {
+        // Pour l'instant, aucune action n'est effectuée pour 'reload'
+        console.log('Aucune action définie pour "reload" pour le moment.');
+        return res.json({ success: true, message: 'Aucune action pour "reload" pour le moment.' });
+    } else {
+        // Gérer le cas où l'action est inconnue
+        console.error('Action inconnue:', action);
+        return res.status(400).json({ success: false, message: 'Action inconnue.' });
+    }
 });
 
 

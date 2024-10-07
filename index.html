@@ -325,6 +325,26 @@
                             <td>${stream.video ? stream.video.codec : 'N/A'}|${stream.video ? stream.video.profile : 'N/A'}|level:${stream.video ? stream.video.level : 'N/A'}</td>
                             <td>${stream.audio ? stream.audio.codec : 'N/A'} | ${stream.audio ? stream.audio.sample_rate : 'N/A'} | ch:${stream.audio ? stream.audio.channel : 'N/A'}                            
                             <td>${typeof stream.clients === 'number' ? stream.clients - 1 : 'N/A'}</td>
+                            <td>
+                               <div style="display: flex; align-items: center;">
+                                   <!-- Premier bouton -->
+                                   <button onclick="cancelClients('${client.ip}', 'clients', 'cancel' ,'${stream.publish.cid}')" 
+                                           style="border: none; background: none; display: flex; align-items: center; cursor: pointer;">
+                                       <img src="/src-img/reboot.png" alt="Reload" style="width: 20px; height: 20px; margin-right: 5px;" />
+                                       <span style="color: blue; text-decoration: underline;">reload</span>
+                                   </button>
+
+                                   <!-- Ajout du séparateur " | " -->
+                                   <span style="margin: 0 10px;">|</span>
+
+                                   <!-- Deuxième bouton -->
+                                   <button onclick="cancelClients('${client.ip}', 'clients', 'reload' , '${stream.publish.cid}')" 
+                                           style="border: none; background: none; display: flex; align-items: center; cursor: pointer;">
+                                       <img src="/src-img/cancel.png" alt="Cancel" style="width: 20px; height: 20px; margin-right: 5px;" />
+                                       <span style="color: red; text-decoration: underline;">cancel</span>
+                                   </button>
+                               </div>
+                            </td>
                         </tr>`;
                     });
                 } else {
@@ -366,7 +386,7 @@
                                 <td>
                                      <button onclick="cancelClients('${client.ip}', 'clients', '${stream.id}')" style="border: none; background: none; display: flex; align-items: center; cursor: pointer;">
                                          <img src="/src-img/cancel.png" alt="Cancel" style="width: 20px; height: 20px; margin-right: 5px;" />
-                                         <span style="color: blue; text-decoration: underline;">Kick-off</span>
+                                         <span style="color: blue; text-decoration: underline;">Kick-off|cluster</span>
                                      </button>
                                 </td>                           
                             </tr>`;
@@ -436,6 +456,7 @@
                         <th>video:[codec]</th>
                         <th>audio:[codec]</th>
                         <th>clients/stream</th>
+                        <th>Action|reload|Kick-off</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -608,11 +629,12 @@
          
          /////////////////////////////////////////////////////////////////////////////////////////
 
-         function cancelClients(clientIp, type, streamId) {
+         function cancelClients(clientIp, type, action, streamId) {
              // Crée l'objet avec les données à envoyer
              const data = {
                  clientIp: clientIp,
                  type: type,
+                 action: action, // Ajout de l'action (reboot ou cancel)
                  streamId: streamId
              };
 
@@ -633,9 +655,15 @@
              .then(result => {
                  console.log('Réponse du serveur:', result);
                  // Tu peux faire quelque chose avec le retour, comme une notification
+                 if (result.success) {
+                     alert(`Action ${action} sur le stream réussie.`);
+                 } else {
+                     alert(`Erreur: ${result.message}`);
+                 }
              })
              .catch(error => {
                  console.error('Erreur:', error);
+                 alert('Une erreur est survenue lors de l\'annulation.');
              });
          }
          

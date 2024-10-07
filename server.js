@@ -163,6 +163,45 @@ app.post('/save-bandwidth', (req, res) => {
   });
 });
 
+// Route pour recevoir la requête POST
+app.post('/cancel-clients', (req, res) => {
+    const { clientIp, type, streamId } = req.body;
+
+    console.log(`Annulation pour Client IP: ${clientIp}, Type: ${type}, Stream ID: ${streamId}`);
+
+    // Construire l'URL pour la commande curl
+    const curlCommand = `curl -v -X DELETE http://${clientIp}:1985/api/v1/${type}/${streamId} && echo ""`;
+
+    // Exécuter la commande curl
+    exec(curlCommand, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Erreur lors de l'exécution de la commande: ${error.message}`);
+            return res.status(500).json({ success: false, message: 'Erreur lors de la suppression du client' });
+        }
+        if (stderr) {
+            console.error(`Erreur dans la réponse: ${stderr}`);
+            return res.status(500).json({ success: false, message: 'Erreur de réponse' });
+        }
+
+        // Analyser la réponse JSON renvoyée par curl
+        try {
+            const jsonResponse = JSON.parse(stdout);
+
+            // Vérifier si le code est égal à 0
+            if (jsonResponse.code === 0) {
+                console.log('Client annulé avec succès');
+                return res.json({ success: true, message: 'Client annulé avec succès' });
+            } else {
+                console.error('Erreur lors de l\'annulation du client');
+                return res.status(400).json({ success: false, message: 'Erreur lors de l\'annulation du client' });
+            }
+        } catch (parseError) {
+            console.error('Erreur de parsing JSON:', parseError);
+            return res.status(500).json({ success: false, message: 'Réponse invalide reçue du client' });
+        }
+    });
+});
+
 
 // Démarrer le serveur sur le port 3000
 app.listen(3000, () => {

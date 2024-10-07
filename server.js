@@ -170,7 +170,7 @@ app.post('/cancel-clients', (req, res) => {
     console.log(`Annulation pour Client IP: ${clientIp}, Type: ${type}, Stream ID: ${streamId}`);
 
     // Construire l'URL pour la commande curl
-    const curlCommand = `curl -v -X DELETE http://${clientIp}:1985/api/v1/${type}/${streamId} && echo ""`;
+    const curlCommand = `curl -s -X DELETE http://${clientIp}:1985/api/v1/${type}/${streamId}`;
 
     // Exécuter la commande curl
     exec(curlCommand, (error, stdout, stderr) => {
@@ -178,14 +178,10 @@ app.post('/cancel-clients', (req, res) => {
             console.error(`Erreur lors de l'exécution de la commande: ${error.message}`);
             return res.status(500).json({ success: false, message: 'Erreur lors de la suppression du client' });
         }
-        if (stderr) {
-            console.error(`Erreur dans la réponse: ${stderr}`);
-            return res.status(500).json({ success: false, message: 'Erreur de réponse' });
-        }
 
         // Analyser la réponse JSON renvoyée par curl
         try {
-            const jsonResponse = JSON.parse(stdout);
+            const jsonResponse = JSON.parse(stdout);  // On s'attend à une réponse JSON pure ici
 
             // Vérifier si le code est égal à 0
             if (jsonResponse.code === 0) {
@@ -197,6 +193,7 @@ app.post('/cancel-clients', (req, res) => {
             }
         } catch (parseError) {
             console.error('Erreur de parsing JSON:', parseError);
+            console.log('Réponse reçue:', stdout);  // Afficher la réponse brute pour déboguer si besoin
             return res.status(500).json({ success: false, message: 'Réponse invalide reçue du client' });
         }
     });

@@ -1,6 +1,6 @@
 [Unit]
 Description=Service pour lancer le serveur de redirection pour ffmpeg des url 
-After=mosquitto.service
+After=network.target
 
 [Service]
 ExecStart=/usr/bin/python3 /root/utilus/util_url.py

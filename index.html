@@ -256,7 +256,7 @@
                     serverData.vhosts = server.vhosts; // Store all vhosts
                     
                     monitoringData[serverIp] = {
-                        con_clients: vhost.clients - 1,
+                        con_clients: vhost.clients,
                         con_streams: vhost.streams
                     };
                 } else {
@@ -362,7 +362,13 @@
                                 <td style="color: green; font-weight: bold;">${stream.type || 'N/A'}</td>
                                 <td style="color: black; font-weight: bold;">
                                     ${stream.alive ? formatTime(stream.alive) : 'N/A'}
-                                </td>                            
+                                </td>
+                                <td>
+                                     <button onclick="cancelClients('${client.ip}', 'clients', '${stream.id}')" style="border: none; background: none; display: flex; align-items: center; cursor: pointer;">
+                                         <img src="/src-img/cancel.png" alt="Cancel" style="width: 20px; height: 20px; margin-right: 5px;" />
+                                         <span style="color: blue; text-decoration: underline;">Kick-off</span>
+                                     </button>
+                                </td>                           
                             </tr>`;
                         }
                     });
@@ -411,9 +417,12 @@
             <button class="streams-button" id="streams-btn-${client.ip}" onclick="toggleStreamsTable('${client.ip}', this)" data-visible="false" data-streams="${monitoringInfo.con_streams}">
                 Streams: ${monitoringInfo.con_streams}
             </button>
-            <button class="clients-button" id="clients-btn-${client.ip}" onclick="toggleClientsTable('${client.ip}', this)" data-visible="false" data-streams="${monitoringInfo.con_clients}">
-                Clients Connectés: ${Math.max(0, monitoringInfo.con_clients)}
-            </button>     
+            <button class="clients-button" id="clients-btn-${client.ip}" 
+             onclick="toggleClientsTable('${client.ip}', this)" 
+             data-visible="false" 
+             data-streams="${Math.max(0, monitoringInfo.con_clients - 1)}">
+             Clients Connectés: ${Math.max(0, monitoringInfo.con_clients - 1)}
+         </button>  
          </div>
          
          <!-- Table pour les streams (initialement cachée) -->
@@ -446,6 +455,7 @@
                         <th>Url|Stream</th>
                         <th>Type|Ecaps</th>                        
                         <th>Time|alive</th>
+                        <th>Action|Kick-off</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -597,6 +607,37 @@
             }
          
          /////////////////////////////////////////////////////////////////////////////////////////
+
+         function cancelClients(clientIp, type, streamId) {
+             // Crée l'objet avec les données à envoyer
+             const data = {
+                 clientIp: clientIp,
+                 type: type,
+                 streamId: streamId
+             };
+
+             // Utilisation de fetch pour envoyer une requête POST vers Node.js
+             fetch('/cancel-clients', {
+                 method: 'POST', 
+                 headers: {
+                     'Content-Type': 'application/json'
+                 },
+                 body: JSON.stringify(data)
+             })
+             .then(response => {
+                 if (!response.ok) {
+                     throw new Error('Erreur lors de la requête');
+                 }
+                 return response.json();  // Attendre la réponse en JSON
+             })
+             .then(result => {
+                 console.log('Réponse du serveur:', result);
+                 // Tu peux faire quelque chose avec le retour, comme une notification
+             })
+             .catch(error => {
+                 console.error('Erreur:', error);
+             });
+         }
          
          // Fonction non asynchrone pour obtenir l'origine d'une IP
 

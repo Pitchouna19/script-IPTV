@@ -48,6 +48,60 @@ function mise_a_jour_systeme() {
     sleep 5
 }
 
+# Fonction commune : Installation de Python3 et dependance
+function installation_python() {
+    # Vérification de l'installation de Python3
+    if command -v python3 &> /dev/null; then
+        echo "Python3 est déjà installé."
+    else
+        echo "Installation de Python3 en cours..."
+        sudo apt install python3 -y
+        echo_green "#############################################"
+        echo_green "#                                           #"
+        echo_green "#          Installation Python OK           #"
+        echo_green "#                                           #"
+        echo_green "#############################################"
+        sleep 5
+    fi
+
+    # Vérification de l'installation de pip
+    if command -v pip3 &> /dev/null; then
+        echo "pip3 est déjà installé."
+    else
+        echo "Installation de pip3 en cours..."
+        sudo apt install python3-pip -y
+        echo_green "#############################################"
+        echo_green "#                                           #"
+        echo_green "#          Installation pip OK               #"
+        echo_green "#                                           #"
+        echo_green "#############################################"
+        sleep 5
+    fi
+
+    # Vérification de l'installation de Flask
+    if python3 -c "import flask" &> /dev/null; then
+        echo "Flask est déjà installé."
+    else
+        echo "Installation de Flask en cours..."
+        sudo pip3 install flask
+    fi
+
+    # Vérification de l'installation de Requests
+    if python3 -c "import requests" &> /dev/null; then
+        echo "Requests est déjà installé."
+    else
+        echo "Installation de Requests en cours..."
+        sudo pip3 install requests
+    fi
+
+    # Creation du dossier utilus
+    sudo mkdir utilus
+    # Copie du script utilus dans le dossier
+    sudo cp util_url.py /root/utilus/
+    
+    
+}
+
 # Fonction commune : Installation des dépendances
 function installation_node() {
     echo "Installation du serveur Node cours..."

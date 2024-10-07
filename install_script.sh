@@ -56,6 +56,10 @@ function installation_python() {
     else
         echo "Installation de Python3 en cours..."
         sudo apt install python3 -y
+        if [ $? -ne 0 ]; then
+            echo "Échec de l'installation de Python3."
+            exit 1
+        fi
         echo_green "#############################################"
         echo_green "#                                           #"
         echo_green "#          Installation Python OK           #"
@@ -70,6 +74,10 @@ function installation_python() {
     else
         echo "Installation de pip3 en cours..."
         sudo apt install python3-pip -y
+        if [ $? -ne 0 ]; then
+            echo "Échec de l'installation de pip3."
+            exit 1
+        fi
         echo_green "#############################################"
         echo_green "#                                           #"
         echo_green "#          Installation pip OK               #"
@@ -84,6 +92,10 @@ function installation_python() {
     else
         echo "Installation de Flask en cours..."
         sudo pip3 install flask
+        if [ $? -ne 0 ]; then
+            echo "Échec de l'installation de Flask."
+            exit 1
+        fi
     fi
 
     # Vérification de l'installation de Requests
@@ -92,14 +104,39 @@ function installation_python() {
     else
         echo "Installation de Requests en cours..."
         sudo pip3 install requests
+        if [ $? -ne 0 ]; then
+            echo "Échec de l'installation de Requests."
+            exit 1
+        fi
     fi
 
-    # Creation du dossier utilus
-    sudo mkdir utilus
-    # Copie du script utilus dans le dossier
+    # Création du dossier utilus s'il n'existe pas déjà
+    if [ ! -d /root/utilus ]; then
+        sudo mkdir /root/utilus
+        echo "Dossier utilus créé."
+    else
+        echo "Le dossier utilus existe déjà."
+    fi
+
+    # Copie du script util_url.py dans le dossier
+    echo "Copie du script util_url.py dans /root/utilus..."
     sudo cp util_url.py /root/utilus/
     
-    
+    echo "Installation du Service Util_url au démarrage..."
+    sudo cp util_url.service /etc/systemd/system/util_url.service
+    sleep 2
+
+    # Activer et démarrer le service
+    echo "Activation et démarrage du service util_url.service..."
+    sudo systemctl enable util_url.service
+    sudo systemctl start util_url.service
+    sleep 2
+
+    echo_green "#############################################"
+    echo_green "#                                           #"
+    echo_green "#    Installation Python et Flask  [OK]     #"
+    echo_green "#                                           #"
+    echo_green "#############################################"
 }
 
 # Fonction commune : Installation des dépendances
@@ -535,6 +572,7 @@ case $choix in
     1)
         mise_a_jour_systeme
         installation_dependances
+        installation_python
         installation_mosquitto
         installation_client
         installation_Docker

@@ -163,45 +163,6 @@ app.post('/save-bandwidth', (req, res) => {
   });
 });
 
-app.get('/get-country-flag', (req, res) => {
-    const ip = req.query.ip;
-
-    // Vérification si l'IP est fournie
-    if (!ip) {
-        return res.json({ flagUrl: 'https://flagcdn.com/32x24/fr.png' });
-    }
-
-    try {
-        // Exécute la requête curl pour récupérer les infos de l'IP
-        const response = execSync(`curl -s https://ipinfo.io/${ip}/json`);
-        
-        // Log de la réponse de curl
-        console.log('Réponse de curl:', response.toString());
-        
-        const data = JSON.parse(response);
-
-        // Log de la réponse JSON récupérée
-        console.log('Réponse JSON récupérée:', data);
-        
-        // Vérifie si le pays est présent dans la réponse JSON
-        const countryCode = data.country ? data.country.toLowerCase() : 'be';
-
-        // Log du code du pays pour débogage
-        console.log('Code du pays:', countryCode);
-
-        // Génère l'URL du drapeau en utilisant le code du pays
-        const flagUrl = `https://flagcdn.com/32x24/${countryCode}.png`;
-
-        // Renvoie le résultat JSON avec l'URL du drapeau
-        res.json({ flagUrl });
-
-    } catch (error) {
-        // Capture les erreurs et log l'erreur exacte
-        console.error('Erreur lors de la récupération des données:', error);
-        res.json({ flagUrl: 'https://flagcdn.com/32x24/be.png' });
-    }
-});
-
 
 // Démarrer le serveur sur le port 3000
 app.listen(3000, () => {

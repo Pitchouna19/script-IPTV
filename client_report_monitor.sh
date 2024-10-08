@@ -113,6 +113,8 @@ while true; do
             for ip in $ip_addresses; do
                 echo "Processing IP: $ip"
 
+                echo "#################################################################"
+
                 # Vérifier si l'adresse IP est locale
                 if [[ "$ip" == 10.* || "$ip" == 172.* || "$ip" == 192.168.* ]]; then
                     echo "IP $ip is local, skipping processing"

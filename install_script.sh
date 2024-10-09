@@ -615,6 +615,37 @@ function installation_serveur() {
     echo_green "#                                                      #"
     echo_green "########################################################"
 
+    # Copie du fichier run_observeur.sh dans /usr/local/bin
+    echo "Copie du fichier run_observeur.sh vers /usr/local/bin..."
+    sudo cp run_observeur.sh /usr/local/bin/run_observeur.sh
+    
+    # Remplacer les termes 'PPP', 'USPAS', et 'PASW' dans le fichier copié
+    echo "Modification des variables dans le fichier /usr/local/bin/run_observeur.sh..."
+    sudo sed -i "s/PPP/$serveur_ip/g" /usr/local/bin/run_observeur.sh
+    sudo sed -i "s/USPAS/$utilisateur/g" /usr/local/bin/run_observeur.sh
+    sudo sed -i "s/PASW/$mot_de_passe/g" /usr/local/bin/run_observeur.sh
+
+    # Rendre le script exécutable
+    sudo chmod +x /usr/local/bin/run_observeur.sh
+
+    # Copie du fichier run_observeur.service dans /etc/systemd/system/
+    echo "Copie du fichier run_observeur.service vers /etc/systemd/system/..."
+    sudo cp run_observeur.service /etc/systemd/system/run_observeur.service
+
+    # Creer le fichier monitoring.json
+    sudo bash -c 'echo "[]" > /var/lib/mosquitto/map.json'
+
+    # Activer et démarrer le service
+    echo "Activation et démarrage du service run_observeur.service..."
+    sudo systemctl enable run_observeur.service
+    sudo systemctl start run_observeur.service
+
+    echo_green "###########################################################"
+    echo_green "#                                                         #"
+    echo_green "#  Installation du mode Serveur [Run Observeur] terminée  #"
+    echo_green "#                                                         #"
+    echo_green "###########################################################"
+
     sleep 5
 
 }

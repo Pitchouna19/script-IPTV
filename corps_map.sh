@@ -56,6 +56,7 @@ start_ffmpeg() {
 # Fonction pour arrêter ffmpeg pour un stream_id donné
 stop_ffmpeg() {
     local stream_id="$1"
+    local dell_id="$2"
 
     last_segment=$(basename "$stream_id")
 
@@ -79,7 +80,8 @@ stop_ffmpeg() {
         
         # Supprimer le 'stream_id' du fichier
         # Vérifie si la ligne contenant le stream_id existe et ne contient pas "on"
-        if grep -q "^[^|]*|$stream_id|[^|]*|" "$file" && ! grep -q "^[^|]*|$stream_id|on|" "$file"; then
+        
+        if grep -q "^[^|]*|$stream_id|[^|]*|" "$file" && ! grep -q "^[^|]*|$stream_id|on|" "$file" && [[ "$dell_id" == "DELL" ]]; then
             echo "Ligne trouvée pour $stream_id et elle ne contient pas 'on', suppression..."
             escaped_stream=$(echo "$stream_id" | sed 's/\//\\\//g')
             sed -i "/^[^|]*|$escaped_stream/d" "$file"
@@ -125,6 +127,31 @@ while true; do
 
     # Lire le fichier pid.conf ligne par ligne
     while IFS="|" read -r type_id stream_id status profil_id; do
+
+        # Message adresser au serveur uniquement par un seul mot
+        if [[ -z "$stream_id" && -z "$status" && -z "$profil_id" ]]; then
+            # Dans ce cas, il n'y a qu'un seul mot (type_id)
+            if [[ "$type_id" == "reboot" ]]; then
+
+                echo "#############################################"
+                echo "#                                           #"
+                echo "#   Nettoyage du fichier mot |reboot|..     #"
+                echo "#                                           #"
+                echo "#############################################"
+
+                for key in "${!ffmpeg_pids[@]}"; do
+                    echo "Clé : $key, Valeur : ${ffmpeg_pids[$key]}"
+                    stop_ffmpeg "$key" "NON_DELL"
+                    echo "arret du processus stream_id : $key du PID : $${ffmpeg_pids[$key]}"
+                    sleep 4
+                done
+                sed -i '/reboot/d' "$file"                
+                echo "Rebooting the script...[Corp MAP]"
+
+                exec "$0"  # Relancer le script actuel
+            fi
+        fi
+
         echo "arg_depart : $type_id | $stream_id | $status | $profil_id"
         current_time=$(date +%s)  # Obtenir le temps actuel
         elapsed_time=$((current_time - loop_start_time))  # Calculer le temps écoulé
@@ -136,30 +163,28 @@ while true; do
             if ! kill -0 "${ffmpeg_pids[$last_segment]}" 2>/dev/null; then
                 echo "Lancement du processus ffmpeg pour le flux $stream_id..."
                 start_ffmpeg "$type_id" "$stream_id" "$profil_id" # Passer l'ID du flux à la fonction
+                echo "Attente delais entre lancement de 15 secondes..."
+                sleep 15
             else
                 echo "Le processus ffmpeg est déjà en cours pour le flux $stream_id, PID : ${ffmpeg_pids[$stream_id]}"
             fi
 
-
-
             if [[ "$profil_id" != "${ffmpeg_prof[$last_segment]}" ]]; then
                 echo "Condition changée [Diff Profil], arrêt du processus ffmpeg pour le flux $stream_id..."
-                stop_ffmpeg "$stream_id"  # Passer l'ID du flux à la fonction
+                stop_ffmpeg "$stream_id" "DELL" # Passer l'ID du flux à la fonction
             fi
-
         else
             # Si le flux est désactivé, arrêter le processus ffmpeg pour ce stream_id
             echo "Condition changée, arrêt du processus ffmpeg pour le flux $stream_id..."
-            stop_ffmpeg "$stream_id"  # Passer l'ID du flux à la fonction
+            stop_ffmpeg "$stream_id" "DELL" # Passer l'ID du flux à la fonction
         fi
 
         # Vérifier si le temps écoulé a dépassé le seuil
         if [[ $elapsed_time -gt 60 ]]; then  # Seuil de 60 secondes (ajustable)
             echo "BUG détecté : La boucle ne fonctionne pas correctement."
-            start_msg "BUG"# Envoyer un message BUG
+            start_msg "BUG" # Envoyer un message BUG
             break  # Sortir de la boucle interne
         fi
-
         sleep 2  # Pause pour éviter une boucle trop rapide
 
     done < "$file" # Rediriger l'entrée vers le fichier

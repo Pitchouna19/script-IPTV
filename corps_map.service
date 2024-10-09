@@ -1,9 +1,9 @@
 [Unit]
-Description=Service pour envoyer des informations système au broker MQTT
+Description=Service Corps Map pour lancer et fermer des stream et reload corps map
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/client_report.sh
+ExecStart=/usr/local/bin/corps_map.sh
 Restart=always
 
 [Install]

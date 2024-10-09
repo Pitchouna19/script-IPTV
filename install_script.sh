@@ -489,11 +489,11 @@ function installation_client() {
     sudo cp corps_map.service /etc/systemd/system/corps_map.service
 
     # Preparation des dossier [ENCPROFIL]
-    mkdir encprofil
+    mkdir /root/encprofil
     echo "Copie du fichier base vers /root/encprofil/..."
     sudo cp base /root/encprofil/
     # Preparation des dossier [PID]
-    mkdir pid
+    mkdir /root/pid
     echo "Creation du fichier [pid.conf]...."
     touch /root/pid/pid.conf
 

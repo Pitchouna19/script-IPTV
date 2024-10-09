@@ -100,7 +100,7 @@ start_msg() {
 
     # Obtenir l'adresse IP de l'hôte
     HOST=$(hostname -I | awk '{print $1}')  # Utiliser $() pour l'assignation
-    MESSAGE="{\"$HOST\":\"$msg_id\"}"  # Utiliser des guillemets doubles pour JSON
+    MESSAGE="{\"ip\":\"$HOST\",\"status\":\"$msg_id\"}"  # Utiliser des guillemets doubles pour JSON
 
     # Boucle de tentatives pour envoyer le message
     for ((i=1; i<=attempts; i++)); do

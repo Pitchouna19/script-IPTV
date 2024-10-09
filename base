@@ -9,6 +9,7 @@ echo "valeur type_id : $2"
 if [[ "$2" == "vavoo" ]]; then
     ffmpeg -re -i "http://127.0.0.1:5050/video/$1" \
         -c copy \
+        -c:a aac -ar 44100 -b:a 128k \
         -f flv rtmp://localhost/live/$1
 elif [[ "$2" == "xtream" ]]; then
     # Extraire le dernier segment de l'URL
@@ -17,6 +18,7 @@ elif [[ "$2" == "xtream" ]]; then
 
     ffmpeg -re -i "$1" \
         -c copy \
+        -c:a aac -ar 44100 -b:a 128k \
         -f flv "rtmp://localhost/live/${last_segment%.ts}"  # Utiliser le dernier>
 else
     echo "Erreur : Type de source non reconnu. Utilisez 'vavoo' ou 'xtream'."

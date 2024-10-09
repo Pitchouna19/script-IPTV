@@ -2,10 +2,10 @@
 
 #!/bin/bash
 # Script pour écouter sur le topic /client/info et maintenir un tableau JSON unique basé sur l'IP
-BROKER_IP="192.168.1.38"
-MQTT_USER="SERV-MP"
-MQTT_PASS="julieus"
-TOPIC="/client/echorun"
+BROKER_IP="PPP"
+MQTT_USER="USPAS"
+MQTT_PASS="PASW"
+TOPIC="/client/infomap"
 
 
 # Déclaration d'un tableau associatif pour stocker les PIDs

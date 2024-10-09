@@ -336,6 +336,7 @@ function installation_openresty_server() {
     sudo mkdir -p /var/www/html
     sudo ln -s /var/lib/mosquitto/clients.json /var/www/html/clients.json
     sudo ln -s /var/lib/mosquitto/monitoring.json /var/www/html/monitoring.json
+    sudo ln -s /var/lib/mosquitto/map.json /var/www/html/map.json
     # Copie de index.html vers /var/www/html/
     sudo cp index.html /var/www/html/
     # Copie de setting.html vers /var/www/html/
@@ -348,6 +349,8 @@ function installation_openresty_server() {
     
     # Copie du script xtream.json  vers le path /var/www/html/
     sudo cp xtream.json /var/www/html/
+    # Copie du script bandwidth.json  vers le path /var/www/html/
+    sudo cp bandwidth.json /var/www/html/
     
     # Copie du script domaine_script.sh vers le path /usr/local/bin/
     #sudo cp domaine_script.sh /usr/local/bin/

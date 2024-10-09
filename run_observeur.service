@@ -1,0 +1,10 @@
+[Unit]
+Description=Service pour recevoir des notification (run et reboot) du serveur de CORPS_MAP
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/run_observeur.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

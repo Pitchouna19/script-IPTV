@@ -139,6 +139,8 @@ while true; do
                 echo "#                                           #"
                 echo "#############################################"
 
+                start_msg "REBOOT" # Envoyer un message Reboot
+
                 for key in "${!ffmpeg_pids[@]}"; do
                     echo "Clé : $key, Valeur : ${ffmpeg_pids[$key]}"
                     stop_ffmpeg "$key" "NON_DELL"
@@ -169,10 +171,13 @@ while true; do
                 echo "Le processus ffmpeg est déjà en cours pour le flux $stream_id, PID : ${ffmpeg_pids[$stream_id]}"
             fi
 
+
+
             if [[ "$profil_id" != "${ffmpeg_prof[$last_segment]}" ]]; then
                 echo "Condition changée [Diff Profil], arrêt du processus ffmpeg pour le flux $stream_id..."
                 stop_ffmpeg "$stream_id" "DELL" # Passer l'ID du flux à la fonction
             fi
+
         else
             # Si le flux est désactivé, arrêter le processus ffmpeg pour ce stream_id
             echo "Condition changée, arrêt du processus ffmpeg pour le flux $stream_id..."
@@ -185,6 +190,7 @@ while true; do
             start_msg "BUG" # Envoyer un message BUG
             break  # Sortir de la boucle interne
         fi
+
         sleep 2  # Pause pour éviter une boucle trop rapide
 
     done < "$file" # Rediriger l'entrée vers le fichier

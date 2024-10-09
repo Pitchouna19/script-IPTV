@@ -2,10 +2,10 @@
 # Script pour écouter sur le topic /client/monitoring et maintenir un tableau JSON unique basé sur l'IP
 
 JSON_FILE="/var/lib/mosquitto/map.json"
-BROKER_IP="192.168.1.38"
-MQTT_USER="SERV-MP"
-MQTT_PASS="julieus"
-TOPIC="/client/echorun"
+BROKER_IP="PPP"
+MQTT_USER="USPAS"
+MQTT_PASS="PASW"
+TOPIC="/client/infomap"
 
 # Initialiser le fichier JSON vide s'il n'existe pas ou le vider au démarrage
 if [[ ! -f $JSON_FILE ]]; then

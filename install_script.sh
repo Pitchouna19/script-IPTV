@@ -465,6 +465,58 @@ function installation_client() {
     echo_green "#######################################################"
 
     sleep 5
+
+    echo "Démarrage de l'installation [Corps_MAP] en mode Client..."    
+
+    # Copie du fichier corps_map.sh dans /usr/local/bin
+    echo "Copie du fichier corps_map.sh vers /usr/local/bin..."
+    sudo cp corps_map.sh /usr/local/bin/corps_map.sh
+    
+    # Remplacer les termes 'PPP', 'USPAS', et 'PASW' dans le fichier copié
+    echo "Modification des variables dans le fichier /usr/local/bin/corps_map.sh..."
+    sudo sed -i "s/PPP/$serveur_ip/g" /usr/local/bin/corps_map.sh
+    sudo sed -i "s/USPAS/$utilisateur/g" /usr/local/bin/corps_map.sh
+    sudo sed -i "s/PASW/$mot_de_passe/g" /usr/local/bin/corps_map.sh
+
+    # Rendre le script exécutable
+    sudo chmod +x /usr/local/bin/corps_map.sh
+
+    # Copie du fichier corps_map.service dans /etc/systemd/system/
+    echo "Copie du fichier corps_map.service vers /etc/systemd/system/..."
+    sudo cp corps_map.service /etc/systemd/system/corps_map.service
+
+    # Preparation des dossier [ENCPROFIL]
+    mkdir encprofil
+    echo "Copie du fichier base vers /root/encprofil/..."
+    sudo cp base /root/encprofil/
+    # Preparation des dossier [PID]
+    mkdir pid
+    echo "Creation du fichier [pid.conf]...."
+    touch /root/pid/pid.conf
+
+    echo "Verification des creations de dossier et fichiers"
+    test -d /root/encprofil && echo_green "Le dossier [encprofil] existe" || echo_red "Le dossier [encprofil] n'existe pas"
+    test -d /root/pid && echo_green "Le dossier [pid] existe" || echo_red "Le dossier [pid] n'existe pas"
+
+    echo_green "#######################################################"
+    echo_green "#                                                     #"
+    echo_green "#  Installation du mode Client [Corps MAP] terminée   #"
+    echo_green "#                                                     #"
+    echo_green "#######################################################"
+    
+    
+    # Activer et démarrer le service
+    echo "Activation et démarrage du service corps_map.service..."
+    sudo systemctl enable corps_map.service
+    sudo systemctl start corps_map.service
+
+    echo_green "#######################################################"
+    echo_green "#                                                     #"
+    echo_green "#  Installation du mode Client [Corps MAP] terminée   #"
+    echo_green "#                                                     #"
+    echo_green "#######################################################"
+
+    sleep 5
 }
 
 # Fonction spécifique : Installation en mode Serveur

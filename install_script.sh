@@ -492,7 +492,6 @@ function installation_client() {
     mkdir /root/encprofil
     echo "Copie des dichier BASE150 BASE200 BASE225 vers /root/encprofil/..."
     sudo cp ./base-prof/base /root/encprofil/
-    sudo cp ./base-prof/base100 /root/encprofil/
     sudo cp ./base-prof/base150 /root/encprofil/
     sudo cp ./base-prof/base200 /root/encprofil/
     sudo cp ./base-prof/base225 /root/encprofil/

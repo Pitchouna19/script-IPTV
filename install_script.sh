@@ -490,8 +490,13 @@ function installation_client() {
 
     # Preparation des dossier [ENCPROFIL]
     mkdir /root/encprofil
-    echo "Copie du fichier base vers /root/encprofil/..."
-    sudo cp base /root/encprofil/
+    echo "Copie des dichier BASE150 BASE200 BASE225 vers /root/encprofil/..."
+    sudo cp ./base-prof/base /root/encprofil/
+    sudo cp ./base-prof/base100 /root/encprofil/
+    sudo cp ./base-prof/base150 /root/encprofil/
+    sudo cp ./base-prof/base200 /root/encprofil/
+    sudo cp ./base-prof/base225 /root/encprofil/
+    
     # Preparation des dossier [PID]
     mkdir /root/pid
     echo "Creation du fichier [pid.conf]...."

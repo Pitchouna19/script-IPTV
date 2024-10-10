@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# $1 représente le premier argument passé au script (ici, stream_id ou URL)
+# $2 représente le deuxième argument (type de source)
+
+echo "valeur stream_id : $1"
+echo "valeur type_id : $2"
+
+if [[ "$2" == "vavoo" ]]; then
+    ffmpeg -re -i "http://127.0.0.1:5050/video/$1" \
+        -vf "scale=iw/2.25:ih/2.25" \
+        -c copy \
+        -c:a aac -ar 44100 -b:a 128k \
+        -f flv rtmp://localhost/live/$1
+elif [[ "$2" == "xtream" ]]; then
+    # Extraire le dernier segment de l'URL
+    last_segment=$(basename "$1")  # Cela va obtenir la dernière partie de l'URL
+    echo "Lost segment : $last_segment"
+
+    ffmpeg -re -i "$1" \
+        -vf "scale=iw/2.25:ih/2.25" \
+        -c copy \
+        -c:a aac -ar 44100 -b:a 128k \
+        -f flv "rtmp://localhost/live/${last_segment%.ts}"  # Utiliser le dernier segment sans l'extension .ts
+else
+    echo "Erreur : Type de source non reconnu. Utilisez 'vavoo' ou 'xtream'."
+    exit 1  # Sortie du script avec une erreur
+fi

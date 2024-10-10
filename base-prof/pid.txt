@@ -1,0 +1,7 @@
+pour trouver le PID de PHP ouvert sur un port exe 8004
+
+cmd : for /f "tokens=5" %a in ('netstat -ano ^| find "8004" ^| find "LISTENING" ^| find "::1"') do @echo %a
+
+pour me repondre par oui ou non si un processus ssh.exe est ouvert encore :
+
+cmd :  netstat | findstr ":ssh" > nul && echo Oui || echo Non

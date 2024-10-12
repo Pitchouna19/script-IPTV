@@ -7,43 +7,65 @@ MQTT_USER="USPAS"
 MQTT_PASS="PASW"
 TOPIC="/client/infomap"
 
+HOST=$(hostname -I | awk '{print $1}')  # Prend la première IP trouvée
 
 # Déclaration d'un tableau associatif pour stocker les PIDs
 declare -A ffmpeg_pids
 declare -A ffmpeg_prof
+declare -A proces_id
+declare -A resolus_id
 
 file="/root/pid/pid.conf"
 
+# Fonction pour obtenir la couleur en fonction du statut
+get_status_color() {
+    case "$1" in
+        "on") echo -e "\e[32m$1\e[0m" ;;  # Vert
+        "off") echo -e "\e[31m$1\e[0m" ;; # Rouge
+        *) echo -e "\e[33m$1\e[0m" ;;     # Jaune
+    esac
+}
+
 # Fonction pour lancer ffmpeg avec une URL d'entrée
 start_ffmpeg() {
-    local type_id="$1"
-    local stream_id="$2"  # Prendre l'ID du flux comme argument
-    local profil_id="$3"  # Prendre l'ID du profil comme argument
+    local id="$1"
+    local type_id="$2"
+    local stream_id="$3"  # Prendre l'ID du flux comme argument
+    local name_id="$4"
+    local profil_id="$5"  # Prendre l'ID du profil comme argument
+    local option_vid="$6"  # Prendre l'ID du profil comme argument
 
     # Chemin du fichier profil contenant la commande ffmpeg
     local profil_file="/root/encprofil/$profil_id"
 
     # Vérifier si le fichier profil existe
     if [[ -f "$profil_file" ]]; then
-        echo "Lancement de ffmpeg avec le profil : $profil_id pour le flux : $stream_id"
+        echo "Lancement du proces "$id" ffmpeg avec le profil : $profil_id pour le flux : $stream_id"
 
         # Lire la commande à partir du fichier de profil
-        cmd=$(sed -e "s#\$1#$stream_id#g" -e "s#\$2#$type_id#g" "$profil_file")
+        cmd=$(sed -e "s#\$1#$type_id#g" -e "s#\$2#$stream_id#g" -e "s#\$3#$name_id#g" -e "s#\$4#$option_vid#g"  "$profil_file")
 
         # Exécuter la commande et récupérer directement le PID de ffmpeg
         eval "$cmd" &
 
         last_segment=$(basename "$stream_id")
         
-        # Donnons à 'ffmpeg' le temps de se lancer, et récupérons le bon PID
-        ffmpeg_pid=$(pgrep -n -f "ffmpeg.*$last_segment")
+        ffmpeg_pid=""
+        attempts=15  # Nombre maximum de tentatives
+        while [[ -z "$ffmpeg_pid" && $attempts -gt 0 ]]; do
+            sleep 3  # Attendre 1 seconde avant chaque tentative
+            ffmpeg_pid=$(pgrep -n -f "ffmpeg.*$last_segment")  # Récupérer le PID le plus récent correspondant
+            attempts=$((attempts - 1))
+        done
         
         # Vérifier si on a bien récupéré un PID
         if [[ -n "$ffmpeg_pid" ]]; then
-            ffmpeg_pids["$last_segment"]="$ffmpeg_pid"  # Enregistrer le PID dans le tableau associatif
-            ffmpeg_prof["$last_segment"]="$profil_id"  # Enregistrer le Profil dans le tableau associatif
+            proces_id["$id"]="$id"  # Enregistrer le PID dans le tableau associatif
+            ffmpeg_pids["$id"]="$ffmpeg_pid"  # Enregistrer le PID dans le tableau associatif
+            ffmpeg_prof["$id"]="$profil_id"  # Enregistrer le Profil dans le tableau associatif
+            resolus_id["$id"]="$option_vid"  # Enregistrer l option resolution dans le tableau associatif
 
-            echo "Processus ffmpeg lancé pour le flux $stream_id avec PID : $ffmpeg_pid"
+            echo "Processus $id ffmpeg lancé pour le flux $stream_id avec PID : $ffmpeg_pid"
         else
             echo "Erreur : Impossible de récupérer le PID du processus ffmpeg pour le flux $stream_id."
         fi
@@ -55,36 +77,47 @@ start_ffmpeg() {
 
 # Fonction pour arrêter ffmpeg pour un stream_id donné
 stop_ffmpeg() {
-    local stream_id="$1"
-    local dell_id="$2"
+    local id="$1"
+    local stream_id="$2"
+    local dell_id="$3"
 
     last_segment=$(basename "$stream_id")
 
-    if [[ -n "${ffmpeg_pids[$last_segment]}" && -e /proc/${ffmpeg_pids[$last_segment]} ]]; then
-        echo "Arrêt du processus ffmpeg pour le flux $stream_id avec PID : ${ffmpeg_pids[$last_segment]}"
+    if [[ -n "${ffmpeg_pids[$id]}" && -e /proc/${ffmpeg_pids[$id]} && -n "${proces_id[$id]}" ]]; then
+        echo "Arrêt du processus $id ffmpeg pour le flux $last_segment avec PID : ${ffmpeg_pids[$id]}"
         
         # Tenter d'arrêter le processus en douceur
-        kill "${ffmpeg_pids[$last_segment]}"
+        kill "${ffmpeg_pids[$id]}"
         sleep 2  # Attendre un peu pour que le processus se termine
 
         # Vérifier si le processus est toujours en cours
-        if kill -0 "${ffmpeg_pids[$last_segment]}" 2>/dev/null; then
+        if kill -0 "${ffmpeg_pids[$id]}" 2>/dev/null; then
             echo "Le processus ne s'est pas arrêté, forçage de l'arrêt avec SIGKILL..."
-            kill -9 "${ffmpeg_pids[$last_segment]}"  # Forcer l'arrêt avec SIGKILL
+            kill -9 "${ffmpeg_pids[$id]}"  # Forcer l'arrêt avec SIGKILL
         fi
         
+        # Supprimer le ID du tableau associatif
+        unset proces_id["$id"]
         # Supprimer le PID du tableau associatif
-        unset ffmpeg_pids["$last_segment"]
+        unset ffmpeg_pids["$id"]
         # Supprimer le PROFIL du tableau associatif
-        unset ffmpeg_prof["$last_segment"]
+        unset ffmpeg_prof["$id"]
+        # Supprimer l option RESOLUTION du tableau associatif
+        unset resolus_id["$id"]
         
         # Supprimer le 'stream_id' du fichier
         # Vérifie si la ligne contenant le stream_id existe et ne contient pas "on"
         
-        if grep -q "^[^|]*|$stream_id|[^|]*|" "$file" && ! grep -q "^[^|]*|$stream_id|on|" "$file" && [[ "$dell_id" == "DELL" ]]; then
-            echo "Ligne trouvée pour $stream_id et elle ne contient pas 'on', suppression..."
-            escaped_stream=$(echo "$stream_id" | sed 's/\//\\\//g')
-            sed -i "/^[^|]*|$escaped_stream/d" "$file"
+        if grep -q "^$id|[^|]*|[^|]*|[^|]*|[^|]*|[^|]*|[^|]*" "$file" && ! grep -q "^[^|]*|[^|]*|$stream_id|[^|]*|on" "$file" && [[ "$dell_id" == "DELL" ]]; then
+
+            if ! grep -q "^[^|]*|[^|]*|$stream_id|[^|]*|sb|" "$file"; then
+                
+                echo "Ligne trouvée pour $stream_id et elle ne contient pas 'on', suppression..."
+                escaped_stream=$(echo "$stream_id" | sed 's/\//\\\//g')
+                sed -i "/^[^|]*|[^|]*|$escaped_stream/d" "$file"
+
+            fi
+            
         fi
 
         echo "Processus ffmpeg pour le flux $stream_id arrêté."
@@ -100,7 +133,7 @@ start_msg() {
 
     # Obtenir l'adresse IP de l'hôte
     HOST=$(hostname -I | awk '{print $1}')  # Utiliser $() pour l'assignation
-    MESSAGE="{\"ip\":\"$HOST\",\"status\":\"$msg_id\"}"  # Utiliser des guillemets doubles pour JSON
+    MESSAGE="{\"ip\":\"$HOST\",\"send\":\"$msg_id\"}"  # Utiliser des guillemets doubles pour JSON
 
     # Boucle de tentatives pour envoyer le message
     for ((i=1; i<=attempts; i++)); do
@@ -117,21 +150,139 @@ start_msg() {
     echo "Échec de l'envoi du message après $attempts tentatives."
 }
 
+# Fonction pour traiter les messages JSON reçus
+update_files() {
+    local message="$1"
+    
+    # Extraire les valeurs du JSON
+    ip=$(echo "$message" | jq -r '.ip')
+    cmd=$(echo "$message" | jq -r '.cmd')
+    action=$(echo "$message" | jq -r '.action')
+
+    # Comparer l'IP reçue avec l'IP de la machine
+    if [[ "$ip" == "$HOST" ]]; then
+        echo "IP correspondante : $ip. Traitement en cours."
+
+        # Si 'action' est 'add', appliquer la logique de vérification avant d'ajouter
+        if [[ "$action" == "add" ]]; then
+            # Extraire l'id et le 4ème champ
+            id=$(echo "$cmd" | cut -d'|' -f1)
+            str=$(echo "$cmd" | cut -d'|' -f4)
+
+            # Vérifier si l'id existe au début d'une ligne dans le fichier
+            if grep -q "^$id|" "$file"; then
+                echo "ID $id déjà présent dans $file. Aucune ligne ajoutée."
+                start_msg "{ "reponse" : "ID $id déjà présent dans $file. Aucune ligne ajoutée." }"
+            # Vérifier si le 4ème champ existe déjà dans cette position sur une ligne
+            elif grep -q "|$str|" "$file"; then
+                echo "Le champ '$str' existe déjà en 4ème position. Aucune ligne ajoutée."
+                start_msg "{ "reponse" : "Le champ '$str' existe déjà en 4ème position. Aucune ligne ajoutée." }"
+            else
+                # Ajouter la ligne si aucune correspondance n'est trouvée
+                echo "$cmd" | sudo tee -a "$file" > /dev/null
+                echo "Ligne ajoutée dans $file : $cmd"
+                start_msg "{ "reponse" : "Add -\> OK" }"
+            fi
+        fi
+
+        if [[ "$action" == "modif" ]]; then
+            # Extraire l'ID et le 4ème champ
+            id=$(echo "$cmd" | cut -d'|' -f1)
+            str=$(echo "$cmd" | cut -d'|' -f4)
+
+            # Vérifier si l'ID existe en début de ligne
+            if grep -q "^$id|" "$file"; then
+                # Vérifier si le 4ème champ (str) n'existe pas déjà en 4ème position
+                if ! awk -F'|' "{ if (\$4 == \"$str\") exit 1 }" "$file"; then
+                    # Modifier la ligne correspondant à l'ID
+                    sudo sed -i "/^$id|/c\\$cmd" "$file"
+                    echo "Ligne modifiée dans $file : $cmd"
+                    start_msg "{ "reponse" : "Modif -\> OK" }"
+                else
+                    echo "Erreur : Le champ '$str' existe déjà en 4ème position. Modification annulée."
+                    start_msg "{ "reponse" : "Le champ '$str' existe déjà en 4ème position. Modification annulée." }"
+                fi
+            else
+                echo "Erreur : ID $id non trouvé dans $file. Modification annulée."
+                start_msg "{ "reponse" : "Erreur : ID $id non trouvé dans $file. Modification annulée." }"
+            fi
+        fi
+
+        if [[ "$action" == "all-off" ]]; then
+            # Remplacer 'on' par 'sb' dans le fichier
+            sudo sed -i 's/on/sb/g' "$file"
+            echo "Tous les termes 'on' ont été remplacés par 'sb' dans $file"
+            start_msg "{ "reponse" : "All-Off -\> OK" }"
+        fi
+
+        # Si 'action' est 'rebout', ajouter une ligne 'reboot' au fichier
+        if [[ "$action" == "rebout" ]]; then
+            echo "reboot" | sudo tee -a "$file" > /dev/null
+            echo "Ligne 'reboot' ajoutée dans $file"
+
+            # envoyer msg
+            start_msg "{ "reponse" : "Reboot -\> OK" }"
+        fi
+
+        # Si 'action' est 'liste' et 'cmd' est 'on',  renvoi la liste des lignes avec 'on' en 5eme position
+        if [[ "$action" == "liste" && "$cmd" == "on" ]]; then
+            # Extraire les lignes avec 'on' en 5ème position et les formater en JSON compact
+            result=$(awk -F'|' '$5 == "on" { print "{\"line\": \"" $0 "\"}" }' "$file" | jq -s -c '.')
+
+            if [[ -n "$result" && "$result" != "[]" ]]; then
+                # Envoyer le JSON compact avec start_msg
+                start_msg "$result"
+            else
+                # Si aucune ligne ne correspond
+                echo "Aucune ligne avec 'on' en 5ème position trouvée."
+            fi
+        fi
+
+        if [[ "$action" == "liste" && "$cmd" == "all" ]]; then
+            # Extraire toutes les lignes du fichier et les formater en JSON compact
+            result=$(awk -F'|' '{ print "{\"line\": \"" $0 "\"}" }' "$file" | jq -s -c '.')
+
+            if [[ -n "$result" && "$result" != "[]" ]]; then
+                # Envoyer le JSON compact avec start_msg
+                start_msg "$result"
+            else
+                # Si le fichier est vide
+                echo "Le fichier est vide ou aucune ligne n'a été trouvée."
+            fi
+        fi
+        
+    else
+        echo "IP non correspondante : $ip. Aucune action effectuée."
+    fi
+}
+
+# Écouter les messages sur le topic et traiter chaque message
+mosquitto_sub -h "$BROKER_IP" -u "$MQTT_USER" -P "$MQTT_PASS" -t "$TOPIC" | while read -r message
+do
+    # Afficher le message reçu pour déboguer
+    echo "Message reçu : $message"
+
+    # Mettre à jour ou ajouter le client dans le fichier
+    update_files "$message"
+done &
+
+
+
 # Boucle infinie
 while true; do
     # Envoyer un Echo "Run"
-    start_msg "RUN"
+    #start_msg "RUN"
 
     # Enregistrer le temps de début de la boucle
     loop_start_time=$(date +%s)
 
     # Lire le fichier pid.conf ligne par ligne
-    while IFS="|" read -r type_id stream_id status profil_id; do
+    while IFS="|" read -r id type_id stream_id name_id status profil_id option_vid; do
 
         # Message adresser au serveur uniquement par un seul mot
-        if [[ -z "$stream_id" && -z "$status" && -z "$profil_id" ]]; then
+        if [[ -z "$option_vid" && -z "$name_id" && -z "$type_id" && -z "$stream_id" && -z "$status" && -z "$profil_id" ]]; then
             # Dans ce cas, il n'y a qu'un seul mot (type_id)
-            if [[ "$type_id" == "reboot" ]]; then
+            if [[ "$id" == "reboot" ]]; then
 
                 echo "#############################################"
                 echo "#                                           #"
@@ -154,34 +305,38 @@ while true; do
             fi
         fi
 
-        echo "arg_depart : $type_id | $stream_id | $status | $profil_id"
+        status_colored=$(get_status_color "$status")
+        echo ""
+        echo -e "\e[32marg_depart : $id | $type_id | $stream_id | $name_id | $status_colored | $profil_id | $option_vid\e[0m"
+        echo ""
         current_time=$(date +%s)  # Obtenir le temps actuel
         elapsed_time=$((current_time - loop_start_time))  # Calculer le temps écoulé
         last_segment=$(basename "$stream_id")
+        echo $status
 
         # Vérifie si le flux est actif
         if [[ "$status" == "on" ]]; then
+            
             # Vérifie si le processus ffmpeg n'est pas déjà en cours
-            if ! kill -0 "${ffmpeg_pids[$last_segment]}" 2>/dev/null; then
-                echo "Lancement du processus ffmpeg pour le flux $stream_id..."
-                start_ffmpeg "$type_id" "$stream_id" "$profil_id" # Passer l'ID du flux à la fonction
-                echo "Attente delais entre lancement de 15 secondes..."
-                sleep 15
+            if [[ "${proces_id[$id]}" != "$id" ]]; then
+                echo "Lancement du processus $id ffmpeg pour le flux $stream_id..."
+                start_ffmpeg "$id" "$type_id" "$stream_id" "$name_id" "$profil_id" "$option_vid" # Passer l'ID du flux à la fonction
+                echo "Attente delais entre lancement de 10 secondes..."
+                sleep 10
             else
-                echo "Le processus ffmpeg est déjà en cours pour le flux $stream_id, PID : ${ffmpeg_pids[$stream_id]}"
-            fi
-
-
-
-            if [[ "$profil_id" != "${ffmpeg_prof[$last_segment]}" ]]; then
+                echo "Le processus $id ffmpeg est déjà en cours pour le flux $stream_id, PID : ${ffmpeg_pids[$id]}"
+            
+                if [[ "$profil_id" != "${ffmpeg_prof[$id]}" ]] || [[ "$option_vid" != "${resolus_id[$id]}" ]]; then
                 echo "Condition changée [Diff Profil], arrêt du processus ffmpeg pour le flux $stream_id..."
-                stop_ffmpeg "$stream_id" "DELL" # Passer l'ID du flux à la fonction
-            fi
+                stop_ffmpeg "$id" "$stream_id" "DELL" # Passer l'ID du flux à la fonction
+                fi
+
+            fi           
 
         else
             # Si le flux est désactivé, arrêter le processus ffmpeg pour ce stream_id
-            echo "Condition changée, arrêt du processus ffmpeg pour le flux $stream_id..."
-            stop_ffmpeg "$stream_id" "DELL" # Passer l'ID du flux à la fonction
+            echo "Condition changée, arrêt du processus $id ffmpeg pour le flux $stream_id..."
+            stop_ffmpeg "$id" "$stream_id" "DELL" # Passer l'ID du flux à la fonction
         fi
 
         # Vérifier si le temps écoulé a dépassé le seuil

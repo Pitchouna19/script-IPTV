@@ -1,26 +1,56 @@
 #!/bin/bash
 
-# $1 repr      sente le premier argument pass       au script (ici, stream_id ou U
-# $2 repr      sente le deuxi      me argument (type de source)
+# $1 : type de source (vavoo ou xtream)
+# $2 : stream_id ou URL
+# $3 : name_id
+# $4 : option_id (copy, 720, 540, etc.)
 
-echo "valeur stream_id : $1"
-echo "valeur type_id : $2"
+echo "valeur type_id : $1"
+echo "valeur stream_id : $2"
+echo "valeur name_id : $3"
+echo "valeur option_id : $4"
 
-if [[ "$2" == "vavoo" ]]; then
-    ffmpeg -re -i "http://127.0.0.1:5050/video/$1" \
-        -c copy \
-        -c:a aac -ar 44100 -b:a 128k \
-        -f flv rtmp://localhost/live/$1
-elif [[ "$2" == "xtream" ]]; then
-    # Extraire le dernier segment de l'URL
-    last_segment=$(basename "$1")  # Cela va obtenir la derni      re partie de l'
-    echo "Lost sergment : $last_segment"
+# Récupérer la hauteur de la vidéo
+if [[ "$1" == "vavoo" ]]; then
+    resolution=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "http://127.0.0.1:5050/video/$2" | head -n 1 | cut -d ',' -f 2)
+elif [[ "$1" == "xtream" ]]; then
+    resolution=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "$2" | head -n 1 | cut -d ',' -f 2)
+fi
 
-    ffmpeg -re -i "$1" \
-        -c copy \
-        -c:a aac -ar 44100 -b:a 128k \
-        -f flv "rtmp://localhost/live/${last_segment%.ts}"  # Utiliser le dernier>
+# Vérifier si la résolution a été correctement récupérée
+if [[ -z "$resolution" ]]; then
+    echo "Erreur : Impossible de récupérer la résolution vidéo."
+    exit 1
+fi
+
+# Initialisation de l'option vidéo
+if [[ "$4" == "copy" ]]; then
+    option_vid="-c copy"
+elif [[ "$4" =~ ^(1080|720|540|460|360)$ ]]; then
+    target_resolution=$4  # La résolution cible choisie
+
+    if [[ $resolution -lt $target_resolution ]]; then
+        option_vid="-vf scale=-2:$resolution -c:v libx264 -preset veryfast -crf 23"
+    else
+        option_vid="-vf scale=-2:$target_resolution -c:v libx264 -preset veryfast -crf 23"
+    fi
+else
+    echo "Erreur : Option_id non reconnue. Utilisez 'copy', '1080', '720', '540', '460', ou '360'."
+    exit 1
+fi
+
+# Commande FFmpeg en fonction du type de source
+if [[ "$1" == "vavoo" ]]; then
+    ffmpeg -stream_loop -1 -re -i "http://127.0.0.1:5050/video/$2" \
+        $option_vid \
+        -c:a aac -ar 44100 -b:a 96k \
+        -f flv rtmp://localhost/live/$3
+elif [[ "$1" == "xtream" ]]; then
+    ffmpeg -stream_loop -1 -re -i "$2" \
+        $option_vid \
+        -c:a aac -ar 44100 -b:a 96k \
+        -f flv rtmp://localhost/live/$3
 else
     echo "Erreur : Type de source non reconnu. Utilisez 'vavoo' ou 'xtream'."
-    exit 1  # Sortie du script avec une erreur
+    exit 1
 fi

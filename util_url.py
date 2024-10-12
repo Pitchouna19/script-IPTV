@@ -1,5 +1,9 @@
 from flask import Flask, redirect
 import requests
+import threading
+import time
+import os
+import sys
 
 app = Flask(__name__)
 
@@ -44,5 +48,13 @@ def get_final_url(video_id):
     except Exception as e:
         return f"Une erreur est survenue : {e}", 500
 
+def restart_server():
+    while True:
+        time.sleep(3600)  # Attendre 60 minutes (3600 secondes)
+        print("Redémarrage du serveur...")
+        os.execv(sys.executable, ['python'] + sys.argv)  # Redémarrer le script
+
 if __name__ == '__main__':
+    # Démarrer le thread de redémarrage
+    threading.Thread(target=restart_server, daemon=True).start()
     app.run(debug=True, port=5050)  # Exécuter le serveur sur le port 5050

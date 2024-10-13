@@ -48,6 +48,84 @@ function mise_a_jour_systeme() {
     sleep 5
 }
 
+function firewall_client_open() {
+    if ! command -v ufw &> /dev/null; then
+        echo "UFW n'est pas installé. Installation en cours..."
+        sudo apt install -y ufw || {
+            echo "Erreur lors de l'installation de UFW."
+            return 1
+        }
+    fi
+
+    echo "Activation du firewall..."
+    sudo ufw enable || {
+        echo "Erreur lors de l'activation du firewall."
+        return 1
+    }
+
+    local ports=(8080 1985)
+    for port in "${ports[@]}"; do
+        echo "Ouverture du port $port..."
+        sudo ufw allow "$port" || {
+            echo "Erreur lors de l'ouverture du port $port."
+            return 1
+        }
+
+        # Ajouter une pause pour s'assurer que le changement est pris en compte
+        sleep 2
+
+        # Vérifier si le port est bien ouvert
+        if sudo ufw status | grep -qE "^$port\s+ALLOW"; then
+            echo "Le port $port est bien ouvert."
+        else
+            echo "Erreur : Le port $port n'a pas été correctement ouvert."
+            return 1
+        fi
+    done
+
+    echo "Tous les ports ont été ouverts avec succès."
+    return 0
+}
+
+function firewall_serveur_open() {
+    if ! command -v ufw &> /dev/null; then
+        echo "UFW n'est pas installé. Installation en cours..."
+        sudo apt install -y ufw || {
+            echo "Erreur lors de l'installation de UFW."
+            return 1
+        }
+    fi
+
+    echo "Activation du firewall..."
+    sudo ufw enable || {
+        echo "Erreur lors de l'activation du firewall."
+        return 1
+    }
+
+    local ports=(9090 8080 1985)
+    for port in "${ports[@]}"; do
+        echo "Ouverture du port $port..."
+        sudo ufw allow "$port" || {
+            echo "Erreur lors de l'ouverture du port $port."
+            return 1
+        }
+
+        # Ajouter une pause pour s'assurer que le changement est pris en compte
+        sleep 2
+
+        # Vérifier si le port est bien ouvert
+        if sudo ufw status | grep -qE "^$port\s+ALLOW"; then
+            echo "Le port $port est bien ouvert."
+        else
+            echo "Erreur : Le port $port n'a pas été correctement ouvert."
+            return 1
+        fi
+    done
+
+    echo "Tous les ports ont été ouverts avec succès."
+    return 0
+}
+
 # Fonction commune : Installation de Python3 et dependance
 function installation_python() {
     # Vérification de l'installation de Python3
@@ -185,7 +263,7 @@ fi
 # Fonction commune : Installation des dépendances
 function installation_dependances() {
     echo "Installation des dépendances en cours..."
-    sudo apt install -y unzip curl git jq sysstat bc sed ffmpeg software-properties-common
+    sudo apt install -y unzip curl git jq sysstat bc sed ffmpeg software-properties-common ufw
     echo_green "#############################################"
     echo_green "#                                           #"
     echo_green "#      Installation des dépendances OK      #"
@@ -662,6 +740,7 @@ case $choix in
     1)
         mise_a_jour_systeme
         installation_dependances
+        firewall_client_open
         installation_python
         installation_mosquitto
         installation_client
@@ -671,6 +750,7 @@ case $choix in
     2)
         mise_a_jour_systeme
         installation_dependances
+        firewall_serveur_open
         installation_mosquitto
         installation_serveur
         installation_Docker

@@ -51,7 +51,7 @@ start_ffmpeg() {
         last_segment=$(basename "$stream_id")
         
         ffmpeg_pid=""
-        attempts=15  # Nombre maximum de tentatives
+        attempts=10  # Nombre maximum de tentatives
         while [[ -z "$ffmpeg_pid" && $attempts -gt 0 ]]; do
             sleep 3  # Attendre 1 seconde avant chaque tentative
             ffmpeg_pid=$(pgrep -n -f "ffmpeg.*$last_segment")  # Récupérer le PID le plus récent correspondant
@@ -110,15 +110,24 @@ stop_ffmpeg() {
         
         if grep -q "^$id|[^|]*|[^|]*|[^|]*|[^|]*|[^|]*|[^|]*" "$file" && ! grep -q "^[^|]*|[^|]*|$stream_id|[^|]*|on" "$file" && [[ "$dell_id" == "DELL" ]]; then
 
-            if ! grep -q "^[^|]*|[^|]*|$stream_id|[^|]*|sb|" "$file"; then
-                
+            if ! grep -q "^[^|]*|[^|]*|$stream_id|[^|]*|sb[|$]" "$file" && \
+               ! grep -q "^[^|]*|[^|]*|$stream_id|[^|]*|re[|$]" "$file"; then
+
                 echo "Ligne trouvée pour $stream_id et elle ne contient pas 'on', suppression..."
                 escaped_stream=$(echo "$stream_id" | sed 's/\//\\\//g')
-                sed -i "/^[^|]*|[^|]*|$escaped_stream/d" "$file"
+                sed -i "/^[^|]*|[^|]*|$escaped_stream|[^|]*|/d" "$file"
 
-            fi
-            
-        fi
+            elif grep -q "^[^|]*|[^|]*|$stream_id|[^|]*|re[|$]" "$file"; then
+
+                echo "#########################################################################################"
+                echo "Ligne trouvée pour $stream_id et elle contient 're', conversion en 'on' pour le replay..."
+                echo "#########################################################################################"
+                
+                escaped_stream=$(echo "$stream_id" | sed 's/\//\\\//g')
+
+                sed -i "s/^\([^|]*|[^|]*|$escaped_stream|[^|]*|\)re[|$]/\1on|/" "$file"
+            fi          
+        fi       
 
         echo "Processus ffmpeg pour le flux $stream_id arrêté."
     else
@@ -172,16 +181,16 @@ update_files() {
             # Vérifier si l'id existe au début d'une ligne dans le fichier
             if grep -q "^$id|" "$file"; then
                 echo "ID $id déjà présent dans $file. Aucune ligne ajoutée."
-                start_msg "{ "reponse" : "ID $id déjà présent dans $file. Aucune ligne ajoutée." }"
+                start_msg "ERR-ID -> ID $id déjà présent dans $file. Aucune ligne ajoutée."
             # Vérifier si le 4ème champ existe déjà dans cette position sur une ligne
             elif grep -q "|$str|" "$file"; then
                 echo "Le champ '$str' existe déjà en 4ème position. Aucune ligne ajoutée."
-                start_msg "{ "reponse" : "Le champ '$str' existe déjà en 4ème position. Aucune ligne ajoutée." }"
+                start_msg "ERR-NAME -> Le champ '$str' existe déjà en 4ème position. Aucune ligne ajoutée."
             else
                 # Ajouter la ligne si aucune correspondance n'est trouvée
                 echo "$cmd" | sudo tee -a "$file" > /dev/null
                 echo "Ligne ajoutée dans $file : $cmd"
-                start_msg "{ "reponse" : "Add -\> OK" }"
+                start_msg "reponse" : "Add [OK]"
             fi
         fi
 
@@ -197,14 +206,14 @@ update_files() {
                     # Modifier la ligne correspondant à l'ID
                     sudo sed -i "/^$id|/c\\$cmd" "$file"
                     echo "Ligne modifiée dans $file : $cmd"
-                    start_msg "{ "reponse" : "Modif -\> OK" }"
+                    start_msg "Modif [OK]"
                 else
-                    echo "Erreur : Le champ '$str' existe déjà en 4ème position. Modification annulée."
-                    start_msg "{ "reponse" : "Le champ '$str' existe déjà en 4ème position. Modification annulée." }"
+                    echo "Erreur : Le champ existe déjà en 4ème position. Modification annulée."
+                    start_msg "ERR-NAME -> Le champ $str existe déjà en 4ème position. Modification annulée."
                 fi
             else
                 echo "Erreur : ID $id non trouvé dans $file. Modification annulée."
-                start_msg "{ "reponse" : "Erreur : ID $id non trouvé dans $file. Modification annulée." }"
+                start_msg "ERR-ID -> ID $id non trouvé dans $file. Modification annulée."
             fi
         fi
 
@@ -212,7 +221,7 @@ update_files() {
             # Remplacer 'on' par 'sb' dans le fichier
             sudo sed -i 's/on/sb/g' "$file"
             echo "Tous les termes 'on' ont été remplacés par 'sb' dans $file"
-            start_msg "{ "reponse" : "All-Off -\> OK" }"
+            start_msg "All-Off [OK]"
         fi
 
         # Si 'action' est 'rebout', ajouter une ligne 'reboot' au fichier
@@ -221,7 +230,7 @@ update_files() {
             echo "Ligne 'reboot' ajoutée dans $file"
 
             # envoyer msg
-            start_msg "{ "reponse" : "Reboot -\> OK" }"
+            start_msg "Reboot [OK]"
         fi
 
         # Si 'action' est 'liste' et 'cmd' est 'on',  renvoi la liste des lignes avec 'on' en 5eme position
@@ -235,6 +244,22 @@ update_files() {
             else
                 # Si aucune ligne ne correspond
                 echo "Aucune ligne avec 'on' en 5ème position trouvée."
+                start_msg "ERR-LISTE-ON-NULL"
+            fi
+        fi
+
+        # Si 'action' est 'liste' et 'cmd' est 'on',  renvoi la liste des lignes avec 'on' en 5eme position
+        if [[ "$action" == "liste" && "$cmd" == "off" ]]; then
+            # Extraire les lignes avec 'on' en 5ème position et les formater en JSON compact
+            result=$(awk -F'|' '$5 == "off" { print "{\"line\": \"" $0 "\"}" }' "$file" | jq -s -c '.')
+
+            if [[ -n "$result" && "$result" != "[]" ]]; then
+                # Envoyer le JSON compact avec start_msg
+                start_msg "$result"
+            else
+                # Si aucune ligne ne correspond
+                echo "Aucune ligne avec 'on' en 5ème position trouvée."
+                start_msg "ERR-LISTE-OFF-NULL"
             fi
         fi
 
@@ -248,8 +273,24 @@ update_files() {
             else
                 # Si le fichier est vide
                 echo "Le fichier est vide ou aucune ligne n'a été trouvée."
+                start_msg "ERR-LISTE-ALL-NULL"
             fi
         fi
+
+        if [[ "$action" == "liste" && ! "$cmd" == "all" && ! "$cmd" == "on" ]]; then
+            # Extraire les lignes contenant la valeur de $cmd dans l'un des champs
+            result=$(awk -F'|' -v cmd="$cmd" '$0 ~ cmd { print "{\"line\": \"" $0 "\"}" }' "$file" | jq -s -c '.')
+
+            if [[ -n "$result" && "$result" != "[]" ]]; then
+                # Envoyer le JSON compact avec start_msg
+                start_msg "$result"
+            else
+                # Si aucune ligne ne correspond ou fichier vide
+                echo "Aucune ligne contenant '$cmd' n'a été trouvée."
+                start_msg "ERR-PAS-DE-CHAINE-NAME"
+            fi
+        fi
+
         
     else
         echo "IP non correspondante : $ip. Aucune action effectuée."
@@ -267,6 +308,25 @@ do
 done &
 
 
+# Fonction pour vérifier si les PID dans le tableau ffmpeg_pids sont toujours actifs
+check_ffmpeg_pids() {
+    for id in "${!ffmpeg_pids[@]}"; do
+        local pid="${ffmpeg_pids[$id]}"
+        
+        # Vérifie si le processus avec ce PID existe toujours
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "Le processus $id avec PID $pid est toujours actif."
+        else
+            echo "Le processus $id avec PID $pid n'existe plus. Nettoyage..."
+            # Supprimer les données associées du processus
+            unset proces_id["$id"]
+            unset ffmpeg_pids["$id"]
+            unset ffmpeg_prof["$id"]
+            unset resolus_id["$id"]
+        fi
+    done
+}
+
 
 # Boucle infinie
 while true; do
@@ -275,6 +335,12 @@ while true; do
 
     # Enregistrer le temps de début de la boucle
     loop_start_time=$(date +%s)
+
+    # Vérifier les PID enregistrés avant de traiter les lignes du fichier
+    check_ffmpeg_pids
+
+    # Afficher le log.txt
+    tail /root/log.txt
 
     # Lire le fichier pid.conf ligne par ligne
     while IFS="|" read -r id type_id stream_id name_id status profil_id option_vid; do

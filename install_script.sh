@@ -48,6 +48,22 @@ function mise_a_jour_systeme() {
     sleep 5
 }
 
+function installation_gestremer() {
+    echo "Installation GStreamer en cours..."
+    sudo apt update && sudo apt upgrade -y && \
+    sudo apt install -y gstreamer1.0-tools gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-ugly gstreamer1.0-libav libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev
+
+    echo_green "#############################################"
+    echo_green "#                                           #"
+    echo_green "#    'Gestremer' installer correctement     #"
+    echo_green "#                                           #"
+    echo_green "#############################################"
+    sleep 5
+}
+
 function firewall_client_open() {
     if ! command -v ufw &> /dev/null; then
         echo "UFW n'est pas installé. Installation en cours..."
@@ -741,6 +757,7 @@ case $choix in
         mise_a_jour_systeme
         installation_dependances
         firewall_client_open
+        installation_gestremer
         installation_python
         installation_mosquitto
         installation_client

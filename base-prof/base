@@ -9,6 +9,7 @@ echo "valeur type_id : $1"
 echo "valeur stream_id : $2"
 echo "valeur name_id : $3"
 echo "valeur option_id : $4"
+echo "valeur bitrate_id : $5"
 
 # Récupérer la hauteur de la vidéo
 if [[ "$1" == "vavoo" ]]; then
@@ -23,6 +24,23 @@ if [[ -z "$resolution" ]]; then
     exit 1
 fi
 
+#######################################################################################################
+########################################### FFMPEG  ###################################################
+#######################################################################################################
+
+# Vérifier si le Bitrate a été correctement récupéré
+if [[ "$5" != "copy" ]]; then
+    bitrate_value=$(echo "$5" | grep -oE '[0-9]+')  # Extraire la partie numérique de $5
+    bufsize_value=$((bitrate_value * 2))            # Doubler la valeur
+
+    # Ajouter 'k' au bitrate et au maxrate
+    bitrate="-b:v ${bitrate_value}k -maxrate ${bitrate_value}k -bufsize ${bufsize_value}k"
+    echo "bitrate : $bitrate"
+else 
+    bitrate=""
+fi
+
+
 # Initialisation de l'option vidéo
 if [[ "$4" == "copy" ]]; then
     option_vid="-c copy"
@@ -30,14 +48,16 @@ elif [[ "$4" =~ ^(1080|720|540|460|360)$ ]]; then
     target_resolution=$4  # La résolution cible choisie
 
     if [[ $resolution -lt $target_resolution ]]; then
-        option_vid="-vf scale=-2:$resolution -c:v libx264 -preset veryfast -crf 23"
+        option_vid="-vf scale=-2:$resolution -c:v libx264 -preset veryfast $bitrate "
     else
-        option_vid="-vf scale=-2:$target_resolution -c:v libx264 -preset veryfast -crf 23"
+        option_vid="-vf scale=-2:$target_resolution -c:v libx264 -preset veryfast $bitrate "
     fi
 else
     echo "Erreur : Option_id non reconnue. Utilisez 'copy', '1080', '720', '540', '460', ou '360'."
     exit 1
 fi
+
+
 
 # Commande FFmpeg en fonction du type de source
 if [[ "$1" == "vavoo" ]]; then
@@ -54,3 +74,8 @@ else
     echo "Erreur : Type de source non reconnu. Utilisez 'vavoo' ou 'xtream'."
     exit 1
 fi
+
+
+#######################################################################################################
+########################################### GSTREAMER##################################################
+#######################################################################################################

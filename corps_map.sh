@@ -56,9 +56,17 @@ start_ffmpeg() {
         ffmpeg_pid=""
         attempts=10  # Nombre maximum de tentatives
         while [[ -z "$ffmpeg_pid" && $attempts -gt 0 ]]; do
-            sleep 3  # Attendre 1 seconde avant chaque tentative
-            ffmpeg_pid=$(pgrep -n -f "ffmpeg.*$name_id")  # Récupérer le PID le plus récent correspondant
-            attempts=$((attempts - 1))
+            sleep 3  # Attendre 3 secondes avant chaque tentative
+
+            if [[ "$profil_id" == *"ffmpeg"* ]]; then
+                ffmpeg_pid=$(pgrep -n -f "ffmpeg.*$name_id")  # Récupérer le PID de ffmpeg
+            elif [[ "$profil_id" == *"gst"* ]]; then
+                ffmpeg_pid=$(pgrep -n -f "gst-launch.*$name_id")  # Récupérer le PID de gst-launch
+            else
+                echo "Profil non reconnu : $profil_id"                
+            fi
+
+            attempts=$((attempts - 1))  # Décrémenter le compteur de tentatives
         done
         
         # Vérifier si on a bien récupéré un PID
@@ -169,8 +177,8 @@ modif_status() {
                 #last_segment=$(basename "$status_stream_id")
         
                 ffmpeg_pid_ultim=""
-                ffmpeg_pid_ultim=$(pgrep -n -f "ffmpeg.*$name")  # Récupérer le PID le plus récent correspondant
-
+                ffmpeg_pid_ultim=$(pgrep -n -f "ffmpeg.*$name")  # Récupérer le PID le plus récent correspondant gst-launch
+                ffmpeg_pid_ultim=$(pgrep -n -f "gst-launch.*$name")
                 # Tenter d'arrêter le processus en douceur
                 if [[ -n "$ffmpeg_pid_ultim" ]]; then
                     # Code à exécuter si ffmpeg_pid_ultim n'est pas vide
@@ -276,9 +284,21 @@ update_files() {
 
         if [[ "$action" == "all-off" ]]; then
             # Remplacer 'on' par 'sb' dans le fichier
-            sudo sed -i 's/on/sb/g' "$file"
+            sudo sed -i 's/on/off/g' "$file"
             echo "Tous les termes 'on' ont été remplacés par 'sb' dans $file"
             start_msg "All-Off [OK]"
+
+            # Remplacer 'on' par 'sb' dans le fichier
+            sudo sed -i 's/sb/off/g' "$file"
+            echo "Tous les termes 'on' ont été remplacés par 'sb' dans $file"
+            start_msg "All-Off [OK]"
+        fi
+
+        if [[ "$action" == "all-sb" ]]; then
+            # Remplacer 'on' par 'sb' dans le fichier
+            sudo sed -i 's/on/sb/g' "$file"
+            echo "Tous les termes 'on' ont été remplacés par 'sb' dans $file"
+            start_msg "All-Sb [OK]"
         fi
 
         if [[ "$action" == "all-on" ]]; then

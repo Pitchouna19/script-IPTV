@@ -13,7 +13,7 @@ while true; do
     # Récupérer la charge CPU par cœur
     #CPU_LOAD=$(awk -v INTERVAL=1 '{cpu_now=(+); total_now=(++)} {if (NR>1) {cpu_diff=cpu_now-prev_cpu; total_diff=total_now-prev_total; usage=(cpu_diff*100)/total_diff; print usage "%"}; prev_cpu=cpu_now; prev_total=total_now; fflush(); system("sleep " INTERVAL);}' <(grep 'cpu ' /proc/stat))
     
-    CPU_LOAD=$(mpstat 1 1 | awk '/all/ && NR==4 {print 100 - $12}')
+    CPU_LOAD=$(mpstat 1 1 | awk '/all/ && NR==4 {print $3}')
     
     # Récupérer le trafic réseau (octets reçus et envoyés)
     INTERFACE=eth0  # Remplacez par votre interface réseau (ex : eth0, wlan0, etc.)

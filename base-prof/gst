@@ -1,1 +1,78 @@
-dfd
+#!/bin/bash
+
+# $1 : type de source (vavoo ou xtream)
+# $2 : stream_id ou URL
+# $3 : name_id
+# $4 : option_id (copy, 720, 540, etc.)
+# $5 : bitrate_id
+
+echo "valeur type_id : $1"
+echo "valeur stream_id : $2"
+echo "valeur name_id : $3"
+echo "valeur option_id : $4"
+echo "valeur bitrate_id : $5"
+
+# Récupérer la hauteur de la vidéo
+if [[ "$1" == "vavoo" ]]; then
+    resolution=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height \
+        -of csv=p=0 "http://127.0.0.1:5050/video/$2" | head -n 1 | cut -d ',' -f 2)
+elif [[ "$1" == "xtream" ]]; then
+    resolution=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height \
+        -of csv=p=0 "$2" | head -n 1 | cut -d ',' -f 2)
+fi
+
+if [[ -z "$resolution" ]]; then
+    echo "Erreur : Impossible de récupérer la résolution vidéo."
+    exit 1
+fi
+
+# Calcul du bitrate et de la taille du buffer
+if [[ "$5" != "copy" ]]; then
+    bitrate_value=$(echo "$5" | grep -oE '[0-9]+')
+    bufsize_value=$((bitrate_value * 2))
+    bitrate_option="bitrate=$((bitrate_value * 1000))"
+    echo "bitrate : $bitrate_option"
+else
+    bitrate_option=""
+fi
+
+# Initialisation de l'option vidéo
+if [[ "$4" == "copy" ]]; then
+    option_vid="! queue ! videoconvert ! x264enc tune=zerolatency $bitrate_option"
+elif [[ "$4" =~ ^(1080|720|540|460|360)$ ]]; then
+    target_resolution=$4
+
+    if [[ $resolution -lt $target_resolution ]]; then
+        option_vid="! videoscale method=1 ! video/x-raw,height=$resolution add-borders=false \
+                    ! videoconvert ! x264enc tune=zerolatency $bitrate_option key-int-max=30"
+    else
+        option_vid="! videoscale method=1 ! video/x-raw,height=$target_resolution add-borders=false \
+                    ! videoconvert ! x264enc tune=zerolatency $bitrate_option key-int-max=30"
+    fi
+else
+    echo "Erreur : Option_id non reconnue. Utilisez 'copy', '1080', '720', '540', '460', ou '360'."
+    exit 1
+fi
+
+# Pipeline GStreamer selon le type de source
+if [[ "$1" == "vavoo" ]]; then
+    input="souphttpsrc location=http://127.0.0.1:5050/video/$2 ! queue max-size-buffers=0 max-size-time=0 max-size-bytes=0"
+elif [[ "$1" == "xtream" ]]; then
+    input="uridecodebin uri=$2 ! queue max-size-buffers=0 max-size-time=0 max-size-bytes=0"
+else
+    echo "Erreur : Type de source non reconnu. Utilisez 'vavoo' ou 'xtream'."
+    exit 1
+fi
+
+# Construction de la commande GStreamer complète
+gst-launch-1.0 -v \
+    $input ! decodebin name=demux \
+    demux. ! queue ! videoconvert ! videoscale method=1 add-borders=false \
+    ! video/x-raw,width=854,height=$resolution \
+    ! x264enc $bitrate_option speed-preset=veryfast tune=zerolatency key-int-max=30 \
+    ! flvmux name=mux streamable=true \
+    ! rtmpsink location="rtmp://localhost/live/$3" \
+    demux. ! queue ! audioconvert ! audioresample \
+    ! audio/x-raw,rate=44100 \
+    ! avenc_aac bitrate=96000 \
+    ! mux.

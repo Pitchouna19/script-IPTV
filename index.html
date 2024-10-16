@@ -213,17 +213,29 @@
          <div id="setting2" style="display: none;"></div>
       </div>
       <script>
-         let maxTrafficIn = 2; // en Mo
-         let maxTrafficOut = 2; // en Mo
          
-         function adjustMaxTraffic(currentTraffic, maxTraffic) {
-             while (currentTraffic > maxTraffic) {
-                 maxTraffic *= 2;
-             }
-             while (currentTraffic < maxTraffic / 2 && maxTraffic > 2) {
-                 maxTraffic /= 2;
-             }
-             return maxTraffic;
+         // Fonction qui charge le Max in et Out de Progresbar de chaque serveur
+         let bandwidthData = {};
+
+         function loadBandwidthData() {
+             return fetch('/bandwidth.json')
+                 .then(response => {
+                     if (!response.ok) {
+                         throw new Error('Erreur de chargement de bandwidth.json');
+                     }
+                     return response.json();
+                 })
+                 .then(data => {
+                     // Mapper les données de bande passante en fonction de l'IP
+                     bandwidthData = {};
+                     data.forEach(item => {
+                         const bandwidthValue = parseInt(item.bandwidth.replace('MB', '').trim()); // Extraire la valeur numérique
+                         bandwidthData[item.ip] = {
+                             maxTrafficIn: bandwidthValue * 1000 ,
+                             maxTrafficOut: bandwidthValue * 1000
+                         };
+                     });
+                 });
          }
          
          let monitoringData = {};
@@ -304,13 +316,30 @@
             console.log('Données chargées:', clients);
             let output = '<h2>Liste des Clients MQTT</h2>';
             clients.forEach((client, index) => {
-                maxTrafficIn = adjustMaxTraffic(client.network_in, maxTrafficIn);
-                maxTrafficOut = adjustMaxTraffic(client.network_out, maxTrafficOut);
+
+               // Récupérer les valeurs de bande passante en fonction de l'IP
+                const bandwidth = bandwidthData[client.ip];
+                const maxTrafficIn = bandwidth ? bandwidth.maxTrafficIn : 2; // Valeur par défaut
+                const maxTrafficOut = bandwidth ? bandwidth.maxTrafficOut : 2; // Valeur par défaut
+
+               // Vérifier que les valeurs sont des nombres valides
+                const cpuLoad = Number(client.cpu_load) || 0;
+                const networkIn = Number(client.network_in) || 0;
+                const networkOut = Number(client.network_out) || 0;             
+                
          
-                const inPercentage = (client.network_in / maxTrafficIn) * 100;
-                const outPercentage = (client.network_out / maxTrafficOut) * 100;
+                // Calculer la moyenne des 3 dernières valeurs
+                const avgCpuLoad = updateHistory(client.ip, 'cpu_load', cpuLoad);
+                const avgNetworkIn = updateHistory(client.ip, 'network_in', networkIn);
+                const avgNetworkOut = updateHistory(client.ip, 'network_out', networkOut);
+
+
+                // Éviter la division par 0 et calculer les pourcentages correctement
+                const inPercentage = maxTrafficIn > 0 ? (avgNetworkIn / maxTrafficIn) * 100 : 0;
+                const outPercentage = maxTrafficOut > 0 ? (avgNetworkOut / maxTrafficOut) * 100 : 0;
          
                 const monitoringInfo = monitoringData[client.ip] || { con_streams: 0, con_clients: 0 };
+
          
                 // Create table rows for streams dynamically
                 // Utiliser les streams provenant de monitoringData
@@ -375,10 +404,17 @@
                                 <td style="color: black; font-weight: bold;">${stream.name || 'N/A'}</td>
                                 <td style="color: black; font-weight: bold;">${stream.ip || 'N/A'}</td>
                                 <td>
-                                    <a href="${stream.tcUrl ? stream.tcUrl.replace(/(http:\/\/[^/]+)/, '$1:8080') : '#'}" target="_blank">
-                                        ${stream.tcUrl ? stream.tcUrl.replace(/(http:\/\/[^/]+)/, '$1:8080') : 'N/A'}/${stream.name || 'N/A'}
-                                    </a>
-                                </td>
+                                  ${(() => {
+                                      const url = stream.tcUrl 
+                                          ? stream.tcUrl.replace(/(http:\/\/[^/]+)/, '$1:8080') 
+                                          : 'N/A';
+                                      const name = stream.name || 'N/A';
+
+                                      return url !== 'N/A'
+                                          ? `<a href="${url}/${name}" target="_blank">${url}/${name}</a>`
+                                          : 'N/A';
+                                  })()}
+                              </td>
                                 <td style="color: green; font-weight: bold;">${stream.type || 'N/A'}</td>
                                 <td style="color: black; font-weight: bold;">
                                     ${stream.alive ? formatTime(stream.alive) : 'N/A'}
@@ -409,38 +445,35 @@
          <p><strong>IP:</strong> ${client.ip}</p>
          
          <!-- Charge CPU -->
-         <div class="progress-with-label">
-            <div class="label">Charge CPU:</div>
-            <div class="progress-bar cpu-load">
-                <div style="width: ${client.cpu_load}%;">${client.cpu_load}%</div>
-            </div>
-         </div>
-         
+               <div class="progress-with-label">
+                     <div class="label">Charge CPU:</div>
+                     <div class="progress-bar cpu-load">
+                           <div style="width: ${avgCpuLoad}%;">${avgCpuLoad}%</div>
+                     </div>
+               </div>
+
          <!-- Trafic IN -->
-         <div class="progress-with-label">
-            <div class="label">Trafic IN:</div>
-            <div class="progress-bar network-in">
-                <div style="width: ${inPercentage}%;">${client.network_in} kbps</div>
-            </div>
-         </div>
-         
-         <!-- Trafic OUT -->
-         <div class="progress-with-label">
-            <div class="label">Trafic OUT:</div>
-            <div class="progress-bar network-out">
-                <div style="width: ${outPercentage}%;">${client.network_out} kbps</div>
-            </div>
-         </div>
+               <div class="progress-with-label">
+                  <div class="label">Trafic IN:</div>
+                  <div class="progress-bar network-in">
+                     <div style="width: ${inPercentage}%;">${avgNetworkIn} kbps</div>
+                  </div>
+               </div>
+
+          <!-- Trafic OUT -->
+               <div class="progress-with-label">
+                  <div class="label">Trafic OUT:</div>
+                  <div class="progress-bar network-out">
+                           <div style="width: ${outPercentage}%;">${avgNetworkOut} kbps</div>
+                   </div>
+               </div>
          
          <!-- Informations du client -->
          <div class="info-client-container">
             <button class="streams-button" id="streams-btn-${client.ip}" onclick="toggleStreamsTable('${client.ip}', this)" data-visible="false" data-streams="${monitoringInfo.con_streams}">
                 Streams: ${monitoringInfo.con_streams}
             </button>
-            <button class="clients-button" id="clients-btn-${client.ip}" 
-             onclick="toggleClientsTable('${client.ip}', this)" 
-             data-visible="false" 
-             data-streams="${Math.max(0, monitoringInfo.con_clients - 1)}">
+            <button class="clients-button" id="clients-btn-${client.ip}" onclick="toggleClientsTable('${client.ip}', this)" data-visible="false" data-streams="${Math.max(0, monitoringInfo.con_clients - monitoringInfo.con_streams)}">
              Clients Connectés: ${Math.max(0, monitoringInfo.con_clients - 1)}
          </button>  
          </div>
@@ -512,12 +545,13 @@
          }
          }
          
-         
+         loadBandwidthData();
          loadMonitoringData();
          loadClientData();
          setInterval(() => {
              loadMonitoringData();
              loadClientData();
+             
          }, 2000);
          
          function showPage(page) {
@@ -680,7 +714,32 @@
             const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
             const s = (seconds % 60).toString().padStart(2, '0');
             return `${h}:${m}:${s}`;
-        }
+        }        
+
+         // Stockage des 3 dernières valeurs pour chaque client, basé sur leur IP
+         const history = {};
+
+         // Fonction pour calculer la moyenne d'un tableau
+         function calculateAverage(arr) {
+             if (!Array.isArray(arr) || arr.length === 0) return 0; // Sécurité contre NaN
+             const sum = arr.reduce((acc, val) => acc + val, 0);
+             return (sum / arr.length).toFixed(2); // Retourner une moyenne valide
+         }
+
+         // Fonction pour mettre à jour l'historique et calculer la moyenne
+         function updateHistory(ip, metric, newValue) {
+             if (!history[ip]) {
+                 history[ip] = { cpu_load: [], network_in: [], network_out: [] };
+             }
+
+             const arr = history[ip][metric];
+
+             // Conserver uniquement les 3 dernières valeurs
+             if (arr.length >= 6) arr.shift(); // Supprimer la plus ancienne valeur
+             arr.push(newValue || 0); // Ajouter la nouvelle valeur (ou 0 si undefined)
+
+             return calculateAverage(arr); // Retourner la moyenne
+         }
          
       </script>
    </body>

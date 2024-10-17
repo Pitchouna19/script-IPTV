@@ -584,11 +584,11 @@ function installation_client() {
 
     # Preparation des dossier [ENCPROFIL]
     mkdir /root/encprofil
-    echo "Copie des dichier BASE150 BASE200 BASE225 vers /root/encprofil/..."
-    sudo cp ./base-prof/base /root/encprofil/
-    sudo cp ./base-prof/base150 /root/encprofil/
-    sudo cp ./base-prof/base200 /root/encprofil/
-    sudo cp ./base-prof/base225 /root/encprofil/
+    echo "Copie des fichiers BASE150 BASE200 BASE225 vers /root/encprofil/..."
+    sudo cp ./base-prof/ffmpeg /root/encprofil/
+    sudo cp ./base-prof/ffmpeg-op1 /root/encprofil/
+    sudo cp ./base-prof/gst /root/encprofil/
+    sudo cp ./base-prof/gst-op1 /root/encprofil/
     
     # Preparation des dossier [PID]
     mkdir /root/pid

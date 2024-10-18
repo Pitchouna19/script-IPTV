@@ -3,79 +3,82 @@
 # $1 : type de source (vavoo ou xtream)
 # $2 : stream_id ou URL
 # $3 : name_id
-# $4 : option_id (copy, 720, 540, etc.)
+# $4 : option_id (ex. : 460@360)
+# $5 : bitrate_id (ex. : 1000@800 ou copy@copy)
+# $6 : fps_id (ex. : 25@30 ou copy@copy)
 
 echo "valeur type_id : $1"
 echo "valeur stream_id : $2"
 echo "valeur name_id : $3"
 echo "valeur option_id : $4"
 echo "valeur bitrate_id : $5"
+echo "valeur fps_id : $6"
 
-# Récupérer la hauteur de la vidéo
+name=$3
+
+# Définir l'URL d'entrée
 if [[ "$1" == "vavoo" ]]; then
-    resolution=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "http://127.0.0.1:5050/video/$2" | head -n 1 | cut -d ',' -f 2)
+    input="http://127.0.0.1:5050/video/$2"
 elif [[ "$1" == "xtream" ]]; then
-    resolution=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "$2" | head -n 1 | cut -d ',' -f 2)
-fi
-
-# Vérifier si la résolution a été correctement récupérée
-if [[ -z "$resolution" ]]; then
-    echo "Erreur : Impossible de récupérer la résolution vidéo."
-    exit 1
-fi
-
-#######################################################################################################
-########################################### FFMPEG  ###################################################
-#######################################################################################################
-
-# Vérifier si le Bitrate a été correctement récupéré
-if [[ "$5" != "copy" ]]; then
-    bitrate_value=$(echo "$5" | grep -oE '[0-9]+')  # Extraire la partie numérique de $5
-    bufsize_value=$((bitrate_value * 2))            # Doubler la valeur
-
-    # Ajouter 'k' au bitrate et au maxrate
-    bitrate="-b:v ${bitrate_value}k -maxrate ${bitrate_value}k -bufsize ${bufsize_value}k"
-    echo "bitrate : $bitrate"
-else 
-    bitrate=""
-fi
-
-
-# Initialisation de l'option vidéo
-if [[ "$4" == "copy" ]]; then
-    option_vid="-c copy"
-elif [[ "$4" =~ ^(1080|720|540|460|360)$ ]]; then
-    target_resolution=$4  # La résolution cible choisie
-
-    if [[ $resolution -lt $target_resolution ]]; then
-        option_vid="-vf scale=-2:$resolution -c:v libx264 -preset veryfast $bitrate "
-    else
-        option_vid="-vf scale=-2:$target_resolution -c:v libx264 -preset veryfast $bitrate "
-    fi
-else
-    echo "Erreur : Option_id non reconnue. Utilisez 'copy', '1080', '720', '540', '460', ou '360'."
-    exit 1
-fi
-
-
-
-# Commande FFmpeg en fonction du type de source
-if [[ "$1" == "vavoo" ]]; then
-    ffmpeg -stream_loop -1 -re -i "http://127.0.0.1:5050/video/$2" \
-        $option_vid \
-        -c:a aac -ar 44100 -b:a 96k \
-        -f flv rtmp://localhost/live/$3
-elif [[ "$1" == "xtream" ]]; then
-    ffmpeg -stream_loop -1 -re -i "$2" \
-        $option_vid \
-        -c:a aac -ar 44100 -b:a 96k \
-        -f flv rtmp://localhost/live/$3
+    input="$2"
 else
     echo "Erreur : Type de source non reconnu. Utilisez 'vavoo' ou 'xtream'."
     exit 1
 fi
 
+echo "URL d'entrée : $input"
 
-#######################################################################################################
-########################################### GSTREAMER##################################################
-#######################################################################################################
+# Séparer les formats, bitrates et fps avec '@' comme délimiteur
+IFS='@' read -r -a formats <<< "$4"
+IFS='@' read -r -a bitrates <<< "$5"
+IFS='@' read -r -a fps_values <<< "$6"
+
+# Vérifier que le nombre de formats correspond au nombre de bitrates et de FPS
+if [[ "${#formats[@]}" -ne "${#bitrates[@]}" ]] || [[ "${#formats[@]}" -ne "${#fps_values[@]}" ]]; then
+    echo "Erreur : Le nombre de formats, bitrates et FPS ne correspond pas."
+    exit 1
+fi
+
+# Fonction pour lancer FFmpeg avec plusieurs sorties
+lancer_ffmpeg() {
+    cmd=("ffmpeg" "-stream_loop" "-1" "-re" "-i" "$input")
+
+    # Ajouter les options pour chaque format
+    for i in "${!formats[@]}"; do
+        format="${formats[$i]}"
+        bitrate="${bitrates[$i]}"
+        fps_value="${fps_values[$i]}"
+        index_id="$i"
+
+        # Ajouter l'option fps si ce n'est pas "copy"
+        fps_option=""
+        if [[ "$fps_value" != "copy" ]]; then
+            fps_option="-r $fps_value"
+        fi
+
+        if [[ "$format" == "copy" ]]; then
+            # Mode copy : ne pas ajouter d'options supplémentaires
+            cmd+=("-c:v" "copy" "-c:a" "copy" "-f" "flv" "rtmp://localhost/live/${name}_${index_id}_${format}")
+        else
+            # Ajouter les options d'encodage pour les autres formats
+            if [[ "$bitrate" != "copy" ]]; then
+                bitrate_option="-b:v ${bitrate}k -maxrate ${bitrate}k -bufsize $((bitrate * 2))k"
+            else
+                bitrate_option=""
+            fi
+
+            cmd+=("-vf" "scale=-2:$format" $fps_option "-c:v" "libx264" "-preset" "veryfast" \
+                  $bitrate_option "-c:a" "aac" "-ar" "44100" "-b:a" "96k" \
+                  "-f" "flv" "rtmp://localhost/live/${name}_${index_id}_${format}")
+        fi
+    done
+
+    # Afficher la commande pour le débogage
+    echo "Commande FFmpeg : ${cmd[*]}"
+
+    # Lancer la commande FFmpeg en tâche de fond
+    "${cmd[@]}"
+}
+
+# Lancer FFmpeg avec les options de sortie
+lancer_ffmpeg

@@ -16,6 +16,7 @@ declare -A proces_id
 declare -A stname_id
 declare -A resolus_id
 declare -A brate_id
+declare -A fpsvid_id
 
 file="/root/pid/pid.conf"
 
@@ -37,6 +38,7 @@ start_ffmpeg() {
     local profil_id="$5"  # Prendre l'ID du profil comme argument
     local option_vid="$6"  # Prendre l'ID du profil comme argument
     local bitrate_id="$7"  # Prendre l'ID du profil comme argument
+    local fps_id="$8"  # Prendre l'ID du profil comme argument
 
     # Chemin du fichier profil contenant la commande ffmpeg
     local profil_file="/root/encprofil/$profil_id"
@@ -46,7 +48,7 @@ start_ffmpeg() {
         echo "Lancement du proces "$id" ffmpeg avec le profil : $profil_id pour le flux : $stream_id"
 
         # Lire la commande à partir du fichier de profil
-        cmd=$(sed -e "s#\$1#$type_id#g" -e "s#\$2#$stream_id#g" -e "s#\$3#$name_id#g" -e "s#\$4#$option_vid#g" -e "s#\$5#$bitrate_id#g"  "$profil_file")
+        cmd=$(sed -e "s#\$1#$type_id#g" -e "s#\$2#$stream_id#g" -e "s#\$3#$name_id#g" -e "s#\$4#$option_vid#g" -e "s#\$5#$bitrate_id#g" -e "s#\$6#$fps_id#g" "$profil_file")
 
         # Exécuter la commande et récupérer directement le PID de ffmpeg
         eval "$cmd" &
@@ -77,6 +79,7 @@ start_ffmpeg() {
             ffmpeg_prof["$id"]="$profil_id"  # Enregistrer le Profil dans le tableau associatif
             resolus_id["$id"]="$option_vid"  # Enregistrer l option resolution dans le tableau associatif
             brate_id["$id"]="$bitrate_id"  # Enregistrer l option bitrate dans le tableau associatif
+            fpsvid_id["$id"]="$fps_id"  # Enregistrer l option bitrate dans le tableau associatif
 
             echo "Processus $id ffmpeg lancé pour le flux $stream_id avec PID : $ffmpeg_pid"
         else
@@ -122,6 +125,9 @@ stop_ffmpeg() {
         unset brate_id["$id"]
         # Supprimer l option NAME STREAM du tableau associatif
         unset stname_id["$id"]
+        # Supprimer l option FPS STREAM du tableau associatif
+        unset fpsvid_id["$id"]
+        
         
         # Fonction Modif des Status SB et OFF et RE
         modif_status "$id" "$stream_id" "$status" "$name"
@@ -425,6 +431,7 @@ check_ffmpeg_pids() {
             unset ffmpeg_prof["$id"]
             unset resolus_id["$id"]
             unset brate_id["$id"]
+            unset fpsvid_id["$id"]
         fi
     done
 }
@@ -442,10 +449,10 @@ while true; do
     check_ffmpeg_pids    
 
     # Lire le fichier pid.conf ligne par ligne
-    while IFS="|" read -r id type_id stream_id name_id status profil_id option_vid bitrate_id; do
+    while IFS="|" read -r id type_id stream_id name_id status profil_id option_vid bitrate_id fps_id; do
 
         # Message adresser au serveur uniquement par un seul mot
-        if [[  -z "$bitrate_id" && -z "$option_vid" && -z "$name_id" && -z "$type_id" && -z "$stream_id" && -z "$status" && -z "$profil_id" ]]; then
+        if [[  -z "$fps_id" && -z "$bitrate_id" && -z "$option_vid" && -z "$name_id" && -z "$type_id" && -z "$stream_id" && -z "$status" && -z "$profil_id" ]]; then
             # Dans ce cas, il n'y a qu'un seul mot (type_id)
             if [[ "$id" == "reboot" ]]; then
 
@@ -485,7 +492,7 @@ while true; do
             # Vérifie si le processus ffmpeg n'est pas déjà en cours
             if [[ "${proces_id[$id]}" != "$id" ]]; then
                 echo "Lancement du processus $id ffmpeg pour le flux $stream_id..."
-                start_ffmpeg "$id" "$type_id" "$stream_id" "$name_id" "$profil_id" "$option_vid" "$bitrate_id" # Passer l'ID du flux à la fonction
+                start_ffmpeg "$id" "$type_id" "$stream_id" "$name_id" "$profil_id" "$option_vid" "$bitrate_id" "$fps_id" # Passer l'ID du flux à la fonction
                 echo "Attente delais entre lancement de 4 secondes..."
                 sleep 4
             else

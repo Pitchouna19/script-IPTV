@@ -479,7 +479,7 @@ while true; do
 
         status_colored=$(get_status_color "$status")
         echo ""
-        echo -e "\e[32marg_depart : $id | $type_id | $stream_id | $name_id | $status_colored | $profil_id | $option_vid | $bitrate_id\e[0m"
+        echo -e "\e[32marg_depart : $id | $type_id | $stream_id | $name_id | $status_colored | $profil_id | $option_vid | $bitrate_id | $fps_id\e[0m"
         echo ""
         current_time=$(date +%s)  # Obtenir le temps actuel
         elapsed_time=$((current_time - loop_start_time))  # Calculer le temps écoulé

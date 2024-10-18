@@ -1,1 +1,84 @@
-ffmpeg-op
+#!/bin/bash
+
+# $1 : type de source (vavoo ou xtream)
+# $2 : stream_id ou URL
+# $3 : name_id
+# $4 : option_id (ex. : 460@360)
+# $5 : bitrate_id (ex. : 1000@800 ou copy@copy)
+# $6 : fps_id (ex. : 25@30 ou copy@copy)
+
+echo "valeur type_id : $1"
+echo "valeur stream_id : $2"
+echo "valeur name_id : $3"
+echo "valeur option_id : $4"
+echo "valeur bitrate_id : $5"
+echo "valeur fps_id : $6"
+
+name=$3
+
+# Définir l'URL d'entrée
+if [[ "$1" == "vavoo" ]]; then
+    input="http://127.0.0.1:5050/video/$2"
+elif [[ "$1" == "xtream" ]]; then
+    input="$2"
+else
+    echo "Erreur : Type de source non reconnu. Utilisez 'vavoo' ou 'xtream'."
+    exit 1
+fi
+
+echo "URL d'entrée : $input"
+
+# Séparer les formats, bitrates et fps avec '@' comme délimiteur
+IFS='@' read -r -a formats <<< "$4"
+IFS='@' read -r -a bitrates <<< "$5"
+IFS='@' read -r -a fps_values <<< "$6"
+
+# Vérifier que le nombre de formats correspond au nombre de bitrates et de FPS
+if [[ "${#formats[@]}" -ne "${#bitrates[@]}" ]] || [[ "${#formats[@]}" -ne "${#fps_values[@]}" ]]; then
+    echo "Erreur : Le nombre de formats, bitrates et FPS ne correspond pas."
+    exit 1
+fi
+
+# Fonction pour lancer FFmpeg avec plusieurs sorties
+lancer_ffmpeg() {
+    cmd=("ffmpeg" "-stream_loop" "-1" "-re" "-i" "$input")
+
+    # Ajouter les options pour chaque format
+    for i in "${!formats[@]}"; do
+        format="${formats[$i]}"
+        bitrate="${bitrates[$i]}"
+        fps_value="${fps_values[$i]}"
+        index_id="$i"
+
+        # Ajouter l'option fps si ce n'est pas "copy"
+        fps_option=""
+        if [[ "$fps_value" != "copy" ]]; then
+            fps_option="-r $fps_value"
+        fi
+
+        if [[ "$format" == "copy" ]]; then
+            # Mode copy : ne pas ajouter d'options supplémentaires
+            cmd+=("-c:v" "copy" "-c:a" "copy" "-f" "flv" "rtmp://localhost/live/${name}_${index_id}_${format}")
+        else
+            # Ajouter les options d'encodage pour les autres formats
+            if [[ "$bitrate" != "copy" ]]; then
+                bitrate_option="-b:v ${bitrate}k -maxrate ${bitrate}k -bufsize $((bitrate * 2))k"
+            else
+                bitrate_option=""
+            fi
+
+            cmd+=("-vf" "scale=-2:$format" $fps_option "-c:v" "libx264" "-preset" "veryfast" \
+                  $bitrate_option "-c:a" "aac" "-ar" "44100" "-b:a" "96k" \
+                  "-f" "flv" "rtmp://localhost/live/${name}_${index_id}_${format}")
+        fi
+    done
+
+    # Afficher la commande pour le débogage
+    echo "Commande FFmpeg : ${cmd[*]}"
+
+    # Lancer la commande FFmpeg en tâche de fond
+    "${cmd[@]}"
+}
+
+# Lancer FFmpeg avec les options de sortie
+lancer_ffmpeg

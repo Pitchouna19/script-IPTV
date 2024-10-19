@@ -58,7 +58,7 @@ lancer_ffmpeg() {
 
         if [[ "$format" == "copy" ]]; then
             # Mode copy : ne pas ajouter d'options supplémentaires
-            cmd+=("-c:v" "copy" "-c:a" "copy" "-f" "flv" "rtmp://localhost/live/${name}_${index_id}_${format}")
+            cmd+=("-c:v" "copy" "-c:a" "aac" "-ar" "44100" "-b:a" "96k" "-f" "flv" "rtmp://localhost/live/${name}_${index_id}_${format}")
         else
             # Ajouter les options d'encodage pour les autres formats
             if [[ "$bitrate" != "copy" ]]; then

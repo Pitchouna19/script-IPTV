@@ -10,26 +10,33 @@
          margin: 0;
          padding: 0;
          }
-         .top-bar {
-         background-color: #333;
-         color: white;
-         padding: 10px;
-         text-align: center;
-         display: flex;
-         justify-content: center;
-         flex-wrap: wrap;
-         }
-         .top-bar button {
-         background-color: #444;
-         color: white;
-         border: none;
-         padding: 10px 20px;
-         margin: 5px;
-         cursor: pointer;
-         border-radius: 5px;
-         flex: 1;
-         min-width: 120px;
-         }
+         /* Conteneur principal */
+        .top-bar {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            display: flex;
+            align-items: center; /* Centre les éléments verticalement */
+            justify-content: space-between; /* Espace entre les groupes */
+            gap: 10px; /* Espace entre les sections */
+        }
+        /* Conteneur pour les trois boutons */
+        .button-group {
+            display: flex;
+            justify-content: center; /* Centre les boutons */
+            gap: 10px; /* Espace entre les boutons */
+            flex-grow: 1; /* Fait en sorte que ce conteneur occupe l'espace disponible */
+        }
+         /* Style des boutons */
+        .top-bar button {
+            background-color: #444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            min-width: 120px;
+        }
          .top-bar button.active {
          background-color: #007bff;
          }
@@ -42,7 +49,7 @@
          flex-direction: column;
          }
          .client-container {
-         background-color: #f9f9f9;
+         background-color: #e0e0e0;
          padding: 15px;
          border-radius: 10px;
          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -50,12 +57,20 @@
          display: flex;
          flex-direction: column;
          }
+         /* Mode sombre */
+        .dark-mode .client-container {
+            background-color: #e0e0e0;
+            border: 1px solid red; /* Bordure rouge */
+        }
          .progress-bar {
          width: 100%;
-         background-color: #e0e0e0;
+         background-color: #949494;
          border-radius: 5px;
          overflow: hidden;
          margin: 5px 0;
+         }
+         .dark-mode .progress-bar {         
+         background-color: #949494;         
          }
          .progress-bar div {
          height: 20px;
@@ -195,14 +210,105 @@
          .hidden {
          display: none;
          }
+         /* Bouton de bascule (mode sombre) */
+        .toggle-container {
+            background-color: #444;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 10px;
+            border-radius: 5px;
+            min-width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toggle-container:hover {
+            background-color: #555;
+        }
+
+         .toggle-icon {
+            font-size: 18px;
+         }
+
+         .dark-mode {
+            background-color: #707070;
+            color: black;
+         }
+         /* Bouton de bascule (mode sombre) */
+        button.toggle-container {
+            background-color: #444;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 10px;
+            border-radius: 5px;
+            min-width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        button.toggle-container:hover {
+            background-color: #555;
+        }
+        /* Bouton avec icône à gauche */
+        .icon-button img {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+        }
+        /* Bouton avec icône à gauche */
+        .icon-button {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Conteneur pour les trois boutons centraux */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-grow: 1; /* Prend tout l’espace disponible entre les bords */
+        }
+        /* Style des boutons centraux */
+        .button-group button {
+            background-color: #444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            min-width: 120px;
+        }
+
+        .button-group button.active {
+            background-color: #007bff;
+        }
+
+        .button-group button:hover {
+            background-color: #555;
+        }
       </style>
    </head>
    <body>
-      <div class="top-bar">
-         <button id="dashboard-btn" class="active" onclick="showPage('dashboard')">Dashboard</button>
-         <button id="setting1-btn" onclick="showPage('setting1')">Server Config</button>
-         <button id="setting2-btn" onclick="showPage('setting2')">Setting 2</button>
-      </div>
+    <div class="top-bar">
+        <button id="serveur-btn" class="icon-button">
+            <img src="/src-img/serveur.png" alt="Server Icon" />
+        </button>
+
+        <div class="button-group">
+            <button id="dashboard-btn" class="active" onclick="showPage('dashboard')">Dashboard</button>
+            <button id="setting1-btn" onclick="showPage('setting1')">Setting</button>
+            <button id="setting2-btn" onclick="showPage('setting2')">Publisher RTMP</button>
+            <button id="setting3-btn" onclick="showPage('setting3')">api token</button>
+        </div>
+
+        <button id="toggle-btn" class="toggle-container" onclick="toggleDarkMode()">🌙</button>
+    </div>
       <div class="content">
          <div id="dashboard">
             <div id="clientData">
@@ -211,6 +317,7 @@
          </div>
          <iframe id="setting1-iframe" style="display: none; width: 100%; height: 500px; border: none;"></iframe>
          <div id="setting2" style="display: none;"></div>
+         <div id="setting3" style="display: none;"></div>
       </div>
       <script>
          
@@ -555,22 +662,22 @@
          }, 2000);
          
          function showPage(page) {
-         const pages = ['dashboard', 'setting1', 'setting2'];
-         pages.forEach(p => {
-         if (p === 'setting1') {
-            document.getElementById(`${p}-iframe`).style.display = p === page ? 'block' : 'none';
-         } else {
-            document.getElementById(p).style.display = p === page ? 'block' : 'none';
-         }
-         document.getElementById(`${p}-btn`).classList.toggle('active', p === page);
-         });
-         
-         if (page === 'setting1') {
-         const iframe = document.getElementById('setting1-iframe');
-         if (!iframe.src) {
-            iframe.src = 'setting.html'; // Charger la page setting.html
-         }
-         }
+         const pages = ['dashboard', 'setting1', 'setting2', 'setting3'];
+             pages.forEach(p => {
+             if (p === 'setting1') {
+                document.getElementById(`${p}-iframe`).style.display = p === page ? 'block' : 'none';
+             } else {
+                document.getElementById(p).style.display = p === page ? 'block' : 'none';
+             }
+                document.getElementById(`${p}-btn`).classList.toggle('active', p === page);
+             });
+             
+             if (page === 'setting1') {
+                    const iframe = document.getElementById('setting1-iframe');
+                if (!iframe.src) {
+                    iframe.src = 'setting.html'; // Charger la page setting.html
+                }
+             }
          }
          
          //////////////////////////////////////////////////////////////////////////////////////////
@@ -739,6 +846,13 @@
              arr.push(newValue || 0); // Ajouter la nouvelle valeur (ou 0 si undefined)
 
              return calculateAverage(arr); // Retourner la moyenne
+         }         
+
+         function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            //document.body.classList.toggle('client-container-dark');
+            const icon = document.querySelector('.toggle-icon');
+            icon.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙'; // Change l'icône selon le mode
          }
          
       </script>

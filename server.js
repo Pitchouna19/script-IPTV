@@ -163,6 +163,20 @@ app.post('/save-bandwidth', (req, res) => {
   });
 });
 
+app.post('/save-kickoff', (req, res) => {
+  const kickoffData = req.body; // Récupère les données envoyées depuis le client
+  const filePath = path.join(__dirname, 'kickoff.json'); // Chemin vers le fichier
+
+  fs.writeFile(filePath, JSON.stringify(kickoffData, null, 2), (err) => {
+    if (err) {
+      console.error('Error saving kickoff.json:', err);
+      return res.status(500).send({ message: 'Error saving Kick-Off settings' });
+    }
+
+    res.send({ message: 'Kick-Off settings saved successfully' });
+  });
+});
+
 // Route pour recevoir la requête POST
 app.post('/cancel-clients', (req, res) => {
     const { clientIp, type, action, streamId } = req.body;

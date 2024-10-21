@@ -11,32 +11,32 @@
          padding: 0;
          }
          /* Conteneur principal */
-        .top-bar {
-            background-color: #333;
-            color: white;
-            padding: 10px;
-            display: flex;
-            align-items: center; /* Centre les éléments verticalement */
-            justify-content: space-between; /* Espace entre les groupes */
-            gap: 10px; /* Espace entre les sections */
-        }
-        /* Conteneur pour les trois boutons */
-        .button-group {
-            display: flex;
-            justify-content: center; /* Centre les boutons */
-            gap: 10px; /* Espace entre les boutons */
-            flex-grow: 1; /* Fait en sorte que ce conteneur occupe l'espace disponible */
-        }
+         .top-bar {
+         background-color: #333;
+         color: white;
+         padding: 10px;
+         display: flex;
+         align-items: center; /* Centre les éléments verticalement */
+         justify-content: space-between; /* Espace entre les groupes */
+         gap: 10px; /* Espace entre les sections */
+         }
+         /* Conteneur pour les trois boutons */
+         .button-group {
+         display: flex;
+         justify-content: center; /* Centre les boutons */
+         gap: 10px; /* Espace entre les boutons */
+         flex-grow: 1; /* Fait en sorte que ce conteneur occupe l'espace disponible */
+         }
          /* Style des boutons */
-        .top-bar button {
-            background-color: #444;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 5px;
-            min-width: 120px;
-        }
+         .top-bar button {
+         background-color: #444;
+         color: white;
+         border: none;
+         padding: 10px 20px;
+         cursor: pointer;
+         border-radius: 5px;
+         min-width: 120px;
+         }
          .top-bar button.active {
          background-color: #007bff;
          }
@@ -58,10 +58,10 @@
          flex-direction: column;
          }
          /* Mode sombre */
-        .dark-mode .client-container {
-            background-color: #e0e0e0;
-            border: 1px solid red; /* Bordure rouge */
-        }
+         .dark-mode .client-container {
+         background-color: #e0e0e0;
+         border: 1px solid red; /* Bordure rouge */
+         }
          .progress-bar {
          width: 100%;
          background-color: #949494;
@@ -211,104 +211,98 @@
          display: none;
          }
          /* Bouton de bascule (mode sombre) */
-        .toggle-container {
-            background-color: #444;
-            border: none;
-            cursor: pointer;
-            font-size: 18px;
-            padding: 10px;
-            border-radius: 5px;
-            min-width: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .toggle-container:hover {
-            background-color: #555;
-        }
-
-         .toggle-icon {
-            font-size: 18px;
+         .toggle-container {
+         background-color: #444;
+         border: none;
+         cursor: pointer;
+         font-size: 18px;
+         padding: 10px;
+         border-radius: 5px;
+         min-width: 40px;
+         display: flex;
+         align-items: center;
+         justify-content: center;
          }
-
+         .toggle-container:hover {
+         background-color: #555;
+         }
+         .toggle-icon {
+         font-size: 18px;
+         }
          .dark-mode {
-            background-color: #707070;
-            color: black;
+         background-color: #707070;
+         color: black;
          }
          /* Bouton de bascule (mode sombre) */
-        button.toggle-container {
-            background-color: #444;
-            border: none;
-            cursor: pointer;
-            font-size: 18px;
-            padding: 10px;
-            border-radius: 5px;
-            min-width: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        button.toggle-container:hover {
-            background-color: #555;
-        }
-        /* Bouton avec icône à gauche */
-        .icon-button img {
-            width: 30px;
-            height: 30px;
-            object-fit: contain;
-        }
-        /* Bouton avec icône à gauche */
-        .icon-button {
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-            padding: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        /* Conteneur pour les trois boutons centraux */
-        .button-group {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            flex-grow: 1; /* Prend tout l’espace disponible entre les bords */
-        }
-        /* Style des boutons centraux */
-        .button-group button {
-            background-color: #444;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 5px;
-            min-width: 120px;
-        }
-
-        .button-group button.active {
-            background-color: #007bff;
-        }
-
-        .button-group button:hover {
-            background-color: #555;
-        }
+         button.toggle-container {
+         background-color: #444;
+         border: none;
+         cursor: pointer;
+         font-size: 18px;
+         padding: 10px;
+         border-radius: 5px;
+         min-width: 40px;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         }
+         button.toggle-container:hover {
+         background-color: #555;
+         }
+         /* Bouton avec icône à gauche */
+         .icon-button img {
+         width: 30px;
+         height: 30px;
+         object-fit: contain;
+         }
+         /* Bouton avec icône à gauche */
+         .icon-button {
+         background-color: transparent;
+         border: none;
+         cursor: pointer;
+         padding: 5px;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         }
+         /* Conteneur pour les trois boutons centraux */
+         .button-group {
+         display: flex;
+         gap: 10px;
+         justify-content: center;
+         flex-grow: 1; /* Prend tout l’espace disponible entre les bords */
+         }
+         /* Style des boutons centraux */
+         .button-group button {
+         background-color: #444;
+         color: white;
+         border: none;
+         padding: 10px 20px;
+         cursor: pointer;
+         border-radius: 5px;
+         min-width: 120px;
+         }
+         .button-group button.active {
+         background-color: #007bff;
+         }
+         .button-group button:hover {
+         background-color: #555;
+         }
       </style>
    </head>
    <body>
-    <div class="top-bar">
-        <button id="serveur-btn" class="icon-button">
-            <img src="/src-img/serveur.png" alt="Server Icon" />
-        </button>
-
-        <div class="button-group">
+      <div class="top-bar">
+         <button id="serveur-btn" class="icon-button">
+         <img src="/src-img/serveur.png" alt="Server Icon" />
+         </button>
+         <div class="button-group">
             <button id="dashboard-btn" class="active" onclick="showPage('dashboard')">Dashboard</button>
             <button id="setting1-btn" onclick="showPage('setting1')">Setting</button>
             <button id="setting2-btn" onclick="showPage('setting2')">Publisher RTMP</button>
             <button id="setting3-btn" onclick="showPage('setting3')">api token</button>
-        </div>
-
-        <button id="toggle-btn" class="toggle-container" onclick="toggleDarkMode()">🌙</button>
-    </div>
+         </div>
+         <button id="toggle-btn" class="toggle-container" onclick="toggleDarkMode()">🌙</button>
+      </div>
       <div class="content">
          <div id="dashboard">
             <div id="clientData">
@@ -320,10 +314,9 @@
          <div id="setting3" style="display: none;"></div>
       </div>
       <script>
-         
          // Fonction qui charge le Max in et Out de Progresbar de chaque serveur
          let bandwidthData = {};
-
+         
          function loadBandwidthData() {
              return fetch('/bandwidth.json')
                  .then(response => {
@@ -423,12 +416,12 @@
             console.log('Données chargées:', clients);
             let output = '<h2>Liste des Clients MQTT</h2>';
             clients.forEach((client, index) => {
-
+         
                // Récupérer les valeurs de bande passante en fonction de l'IP
                 const bandwidth = bandwidthData[client.ip];
                 const maxTrafficIn = bandwidth ? bandwidth.maxTrafficIn : 2; // Valeur par défaut
                 const maxTrafficOut = bandwidth ? bandwidth.maxTrafficOut : 2; // Valeur par défaut
-
+         
                // Vérifier que les valeurs sont des nombres valides
                 const cpuLoad = Number(client.cpu_load) || 0;
                 const networkIn = Number(client.network_in) || 0;
@@ -439,14 +432,14 @@
                 const avgCpuLoad = updateHistory(client.ip, 'cpu_load', cpuLoad);
                 const avgNetworkIn = updateHistory(client.ip, 'network_in', networkIn);
                 const avgNetworkOut = updateHistory(client.ip, 'network_out', networkOut);
-
-
+         
+         
                 // Éviter la division par 0 et calculer les pourcentages correctement
                 const inPercentage = maxTrafficIn > 0 ? (avgNetworkIn / maxTrafficIn) * 100 : 0;
                 const outPercentage = maxTrafficOut > 0 ? (avgNetworkOut / maxTrafficOut) * 100 : 0;
          
                 const monitoringInfo = monitoringData[client.ip] || { con_streams: 0, con_clients: 0 };
-
+         
          
                 // Create table rows for streams dynamically
                 // Utiliser les streams provenant de monitoringData
@@ -469,10 +462,10 @@
                                        <img src="/src-img/reboot.png" alt="Reload" style="width: 20px; height: 20px; margin-right: 5px;" />
                                        <span style="color: blue; text-decoration: underline;">reload</span>
                                    </button>
-
+         
                                    <!-- Ajout du séparateur " | " -->
                                    <span style="margin: 0 10px;">|</span>
-
+         
                                    <!-- Deuxième bouton -->
                                    <button onclick="cancelClients('${client.ip}', 'clients', 'reload' , '${stream.publish.cid}')" 
                                            style="border: none; background: none; display: flex; align-items: center; cursor: pointer;">
@@ -494,17 +487,17 @@
                 let clientRows = '';
                 if (monitoringData[client.ip] && monitoringData[client.ip].details.clients.length > 0) {
                     monitoringData[client.ip].details.clients.forEach(stream => {
-
+         
                         //console.log("Processing stream:", stream); // Debug: Voir les détails du stream
-
+         
                         let countryCode = stream.country && stream.country !== '-' ? stream.country.toLowerCase() : 'ge'; 
                         console.log("Country code:", countryCode); // Debug: Afficher le code du pays
                        
                         let html = `<img src="https://flagcdn.com/32x24/${countryCode}.png" alt="Country Flag">`;
-
+         
                         if (stream.publish === false) { // Vérifier si publish est false
                             
-
+         
                             clientRows += `
                             <tr>
                                 <td>${html}</td>
@@ -516,7 +509,7 @@
                                           ? stream.tcUrl.replace(/(http:\/\/[^/]+)/, '$1:8080') 
                                           : 'N/A';
                                       const name = stream.name || 'N/A';
-
+         
                                       return url !== 'N/A'
                                           ? `<a href="${url}/${name}" target="_blank">${url}/${name}</a>`
                                           : 'N/A';
@@ -535,16 +528,16 @@
                             </tr>`;
                         }
                     });
-
+         
                     console.log("Generated rows:", clientRows); // Debug: Voir les lignes générées
-
+         
                 } else {
                     clientRows = `
                     <tr>
                         <td colspan="6">Pas de streams disponibles</td>
                     </tr>`;
                 }
-
+         
          
                 output += `
                 <div class="client-container">
@@ -558,7 +551,7 @@
                            <div style="width: ${avgCpuLoad}%;">${avgCpuLoad}%</div>
                      </div>
                </div>
-
+         
          <!-- Trafic IN -->
                <div class="progress-with-label">
                   <div class="label">Trafic IN:</div>
@@ -566,7 +559,7 @@
                      <div style="width: ${inPercentage}%;">${avgNetworkIn} kbps</div>
                   </div>
                </div>
-
+         
           <!-- Trafic OUT -->
                <div class="progress-with-label">
                   <div class="label">Trafic OUT:</div>
@@ -769,7 +762,7 @@
             }
          
          /////////////////////////////////////////////////////////////////////////////////////////
-
+         
          function cancelClients(clientIp, type, action, streamId) {
              // Crée l'objet avec les données à envoyer
              const data = {
@@ -778,7 +771,7 @@
                  action: action, // Ajout de l'action (reboot ou cancel)
                  streamId: streamId
              };
-
+         
              // Utilisation de fetch pour envoyer une requête POST vers Node.js
              fetch('/cancel-clients', {
                  method: 'POST', 
@@ -814,40 +807,40 @@
          }
          
          // Fonction non asynchrone pour obtenir l'origine d'une IP
-
-        function formatTime(seconds) {
+         
+         function formatTime(seconds) {
             seconds = Math.floor(seconds); // Enlever les millisecondes
             const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
             const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
             const s = (seconds % 60).toString().padStart(2, '0');
             return `${h}:${m}:${s}`;
-        }        
-
+         }        
+         
          // Stockage des 3 dernières valeurs pour chaque client, basé sur leur IP
          const history = {};
-
+         
          // Fonction pour calculer la moyenne d'un tableau
          function calculateAverage(arr) {
              if (!Array.isArray(arr) || arr.length === 0) return 0; // Sécurité contre NaN
              const sum = arr.reduce((acc, val) => acc + val, 0);
              return (sum / arr.length).toFixed(2); // Retourner une moyenne valide
          }
-
+         
          // Fonction pour mettre à jour l'historique et calculer la moyenne
          function updateHistory(ip, metric, newValue) {
              if (!history[ip]) {
                  history[ip] = { cpu_load: [], network_in: [], network_out: [] };
              }
-
+         
              const arr = history[ip][metric];
-
+         
              // Conserver uniquement les 3 dernières valeurs
              if (arr.length >= 6) arr.shift(); // Supprimer la plus ancienne valeur
              arr.push(newValue || 0); // Ajouter la nouvelle valeur (ou 0 si undefined)
-
+         
              return calculateAverage(arr); // Retourner la moyenne
          }         
-
+         
          function toggleDarkMode() {
             document.body.classList.toggle('dark-mode');
             //document.body.classList.toggle('client-container-dark');

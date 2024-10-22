@@ -455,18 +455,10 @@
          }, 2000); // Délai de 2 secondes avant de faire le fetch
          }
          
-         // Charger Kick-Off
-         document.getElementById('kickoff-button').addEventListener('click', () => {
-            const modal = document.getElementById('kickoff-modal');
-            modal.classList.remove('hidden');
-            loadKickoffSettings(); // Charger les paramètres au moment de l'ouverture
-         });
-         // Fermer la fenêtre modale
-         document.getElementById('cancel-kickoff-modal').addEventListener('click', () => {
-            document.getElementById('kickoff-modal').classList.add('hidden');
-         });
-         document.getElementById('save-kickoff-modal').addEventListener('click', saveKickoffSettings);
-         
+
+         ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+         /////////////////////////////////////////////////////////////////////////////////  Bandwidth   ///////////////////////////////////////////////////
+
          // Charger BANDWITH
          document.getElementById('settings-button').addEventListener('click', function () {
              document.getElementById('settings-modal').classList.remove('hidden');
@@ -668,15 +660,45 @@
          });
          }
          
-         // kick off
+         ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+         /////////////////////////////////////////////////////////////////////////////////  Kick OFF   ////////////////////////////////////////////////////
          
-          // Fonction pour ouvrir la modal Kick-Off
-         function openKickoffModal() {
-            const modal = document.getElementById('kickoff-modal');
-            modal.classList.remove('hidden');
-            loadKickoffSettings();
-         }
-         
+         // Charger Kick-Off avec vérification du fichier kickoff.json
+         document.getElementById('kickoff-button').addEventListener('click', () => {
+            // Vérifier le contenu du fichier kickoff.json
+            fetch('/kickoff.json', {
+               method: 'GET',
+               headers: {
+                  'Cache-Control': 'no-cache', // Désactiver le cache
+               },
+               cache: 'no-store', // Ne pas utiliser le cache du navigateur
+            })
+            .then(response => response.json())
+            .then(data => {
+               const modal = document.getElementById('kickoff-modal');
+               modal.classList.remove('hidden'); // Afficher la modale
+
+               if (data.length === 0) {
+                  // Si le fichier est vide, appeler loadKickoffSettings()
+                  loadKickoffSettings();
+               } else {
+                  // Si le fichier contient des données, appeler loadKickoffSettingsAfter()
+                  loadKickoffSettingsAfter(data);
+               }
+            })
+            .catch(error => {
+               console.error('Erreur lors de la récupération du fichier kickoff.json:', error);
+               alert('Impossible de charger les paramètres Kick-Off.');
+            });
+         });
+         // Fermer la fenêtre modale
+         document.getElementById('cancel-kickoff-modal').addEventListener('click', () => {
+            document.getElementById('kickoff-modal').classList.add('hidden');
+         });
+         document.getElementById('save-kickoff-modal').addEventListener('click', saveKickoffSettings);
+
+
+                           
          // Fonction pour fermer la modal Kick-Off
          function closeKickoffModal() {
             const modal = document.getElementById('kickoff-modal');
@@ -834,7 +856,7 @@
          }
          
          // Fonction pour charger les paramètres Kick-Off dans la fenêtre modale
-         function loadKickoffSettings() {
+         function loadKickoffSettingsAfter() {
             fetch('/kickoff.json', {
                method: 'GET',
                headers: {

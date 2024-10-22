@@ -288,6 +288,33 @@ function installation_dependances() {
     sleep 5
 }
 
+# Fonction Serveur : Installation de Kick-Off
+function installation_kickoff() {
+    echo "Installation de kick-off en cours..."
+    echo "Copie du fichier kickoff.sh vers /usr/local/bin..."
+    sudo cp kickoff.sh /usr/local/bin/kickoff.sh
+     
+    # Rendre le script exécutable
+    sudo chmod +x /usr/local/bin/kickoff.sh
+
+    # Copie du fichier kickoff.service dans /etc/systemd/system/
+    echo "Copie du fichier kickoff.service vers /etc/systemd/system/..."
+    sudo cp kickoff.service /etc/systemd/system/kickoff.service
+
+    # Activer et démarrer le service
+    echo "Activation et démarrage du service kickoff.service..."
+    sudo systemctl enable kickoff.service
+    sudo systemctl start kickoff.service
+    
+    echo_green "#############################################"
+    echo_green "#                                           #"
+    echo_green "#        Installation de kickoff  OK        #"
+    echo_green "#                                           #"
+    echo_green "#############################################"
+    sleep 5
+}
+
+
 # Fonction commune : Installation de Mosquitto
 function installation_mosquitto() {
     echo "Installation de Mosquitto en cours..."
@@ -775,6 +802,7 @@ case $choix in
         installation_Docker
         installation_openresty_server
         installation_node
+        installation_kickoff
         ;;
     q)
         echo "Installation annulée. À bientôt!"

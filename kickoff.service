@@ -1,1 +1,10 @@
-dd
+[Unit]
+Description=Service Kick-Off pour controler et ventiller la conection et les clients
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/kickoff.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

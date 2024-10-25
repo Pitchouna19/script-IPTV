@@ -130,6 +130,7 @@ server {
         }
     }
 
+
     location /clients.json {
         alias /var/www/html/clients.json;
         default_type application/json;

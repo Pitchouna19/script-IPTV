@@ -63,9 +63,12 @@ server {
             return redirect_to_404()  -- Redirection si le JSON est incorrect
         end
 
-        -- Extraire user et pass depuis l'URL
-        local user = ngx.var.arg_user
-        local pass = ngx.var.arg_pass
+        -- Extraire user et pass depuis l'URI
+        local user, pass = ngx.var.uri:match("/live/([^/]+)/([^/]+)/")
+        if not user or not pass then
+            ngx.log(ngx.ERR, "Erreur: Identifiants manquants dans l'URL")
+            return redirect_to_404()
+        end
 
         -- Ajouter des logs pour les identifiants
         ngx.log(ngx.INFO, "User: " .. tostring(user) .. ", Pass: " .. tostring(pass))

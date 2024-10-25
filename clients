@@ -75,6 +75,7 @@ server {
 
         -- Fonction de vérification des identifiants
         local function check_credentials(user, pass)
+            ngx.log(ngx.INFO, "Vérification des identifiants pour User: " .. tostring(user) .. ", Pass: " .. tostring(pass))
             for _, u in ipairs(users.users) do
                 if u.user == user and u.pass == pass then
                     return true
@@ -129,6 +130,7 @@ server {
         ngx.redirect(target_url)
         }
     }
+
 
 
     location /clients.json {

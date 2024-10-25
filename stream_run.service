@@ -1,1 +1,10 @@
-ddd
+[Unit]
+Description=Service pour creer le fichier json streaming
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/stream_run.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

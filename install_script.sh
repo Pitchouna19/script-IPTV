@@ -778,6 +778,32 @@ function installation_serveur() {
 
     sleep 5
 
+       # Copie du fichier run_observeur.sh dans /usr/local/bin
+    echo "Copie du fichier stream_run.sh vers /usr/local/bin..."
+    sudo cp stream_run.sh /usr/local/bin/stream_run.sh   
+
+    # Rendre le script exécutable
+    sudo chmod +x /usr/local/bin/stream_run.sh
+
+    # Copie du fichier stream_run.service dans /etc/systemd/system/
+    echo "Copie du fichier stream_run.service vers /etc/systemd/system/..."
+    sudo cp stream_run.service /etc/systemd/system/stream_run.service
+
+    # Creer le fichier monitoring.json
+    sudo bash -c 'echo "[]" > /var/www/html/streaming_run.json'
+
+    # Activer et démarrer le service
+    echo "Activation et démarrage du service stream_run.service..."
+    sudo systemctl enable stream_run.service
+    sudo systemctl start stream_run.service
+
+    echo_green "###########################################################"
+    echo_green "#                                                         #"
+    echo_green "#  Installation du mode Serveur [Run Streaming] terminée  #"
+    echo_green "#                                                         #"
+    echo_green "###########################################################"
+
+    sleep 5
 }
 
 # Exécution des étapes en fonction du choix

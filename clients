@@ -34,7 +34,7 @@ server {
     }
 
     location /live/ {
-    content_by_lua_block {
+        content_by_lua_block {
         local json = require("cjson")
         local http = require("resty.http")
 
@@ -103,16 +103,26 @@ server {
         -- Ajouter un log pour l'ID du stream
         ngx.log(ngx.ERR, "ID du stream : " .. tostring(id_stream))
 
-        -- Effectuer une requête vers /streaming pour récupérer {IP}|{nom}
+        -- Créer un client HTTP et définir un délai d’expiration
         local httpc = http.new()
-        local res, err = httpc:request_uri("http://localhost:9090/streaming", {
+        httpc:set_timeout(5000)  -- Timeout de 5 secondes
+
+        -- Effectuer une requête vers /streaming pour récupérer {IP}|{nom}
+        local res, err = httpc:request_uri("http://127.0.0.1:9090/streaming", {
             method = "GET",
             query = { name = id_stream },
+            headers = { ["Host"] = "localhost:9090" },  -- En-tête Host explicite
         })
+
+        -- Log pour vérifier si une erreur HTTP a eu lieu
+        if err then
+            ngx.log(ngx.ERR, "Erreur HTTP : " .. tostring(err))
+        end
 
         -- Ajouter un log pour voir la réponse brute
         ngx.log(ngx.ERR, "Réponse de /streaming : " .. (res and res.body or "nil"))
 
+        -- Vérifier si la réponse est valide
         if not res or res.status ~= 200 then
             ngx.log(ngx.ERR, "Erreur: Impossible de récupérer les informations du stream, statut : " .. tostring(res and res.status or "nil"))
             return redirect_to_404()
@@ -131,10 +141,8 @@ server {
 
         -- Effectuer la redirection vers le bon serveur
         ngx.redirect(target_url)
+        }
     }
-}
-
-
 
 
     location /clients.json {

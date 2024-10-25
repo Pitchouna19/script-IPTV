@@ -34,18 +34,19 @@ server {
             local http = require("resty.http")
 
             -- Définir l'adresse du serveur1
-            local serveur1 = "serveur1.example.com"  -- Remplacez par l'adresse réelle de votre serveur1
+            local serveur1 = "localhost:9090"  -- Remplacez par l'adresse réelle de votre serveur
 
             -- Fonction pour rediriger vers 404.mp4
             local function redirect_to_404()
                 local error_url = "http://" .. serveur1 .. "/live/404.mp4"
-                return ngx.redirect(error_url)
+                ngx.redirect(error_url)
             end
 
             -- Charger et lire le fichier acces.json
-            local file = io.open("/root/acces.json", "r")
+            local file = io.open("/var/www/html/acces.json", "r")  -- Chemin corrigé
             if not file then
-                return redirect_to_404()  -- Redirection si acces.json ne peut pas être ouvert
+                ngx.log(ngx.ERR, "Erreur: Impossible d'ouvrir acces.json")
+                return redirect_to_404()  -- Redirection si le fichier est introuvable
             end
 
             local data = file:read("*a")
@@ -53,7 +54,8 @@ server {
 
             local ok, users = pcall(json.decode, data)
             if not ok then
-                return redirect_to_404()  -- Redirection si le JSON est invalide
+                ngx.log(ngx.ERR, "Erreur: Format JSON invalide")
+                return redirect_to_404()  -- Redirection si le JSON est incorrect
             end
 
             -- Extraire user et pass depuis l'URL
@@ -72,7 +74,8 @@ server {
 
             -- Vérifier les identifiants
             if not check_credentials(user, pass) then
-                return redirect_to_404()  -- Redirection si les identifiants sont incorrects
+                ngx.log(ngx.ERR, "Accès refusé : Identifiants incorrects")
+                return redirect_to_404()
             end
 
             -- Générer un token unique
@@ -81,31 +84,34 @@ server {
             -- Extraire l'ID du stream depuis l'URL
             local id_stream = ngx.var.uri:match("/live/[^/]+/[^/]+/(.+)")
             if not id_stream then
-                return redirect_to_404()  -- Redirection si l'ID stream est manquant
+                ngx.log(ngx.ERR, "Erreur: ID du stream manquant")
+                return redirect_to_404()
             end
 
-            -- Effectuer une requête interne à /streaming pour récupérer {adresse IP}|{nom}
+            -- Effectuer une requête vers /streaming pour récupérer {IP}|{nom}
             local httpc = http.new()
             local res, err = httpc:request_uri("http://localhost:9090/streaming", {
                 method = "GET",
-                query = { name = id_stream },  -- Envoi de l'ID stream
+                query = { name = id_stream },
             })
 
             if not res or res.status ~= 200 then
-                return redirect_to_404()  -- Redirection si la requête échoue
+                ngx.log(ngx.ERR, "Erreur: Impossible de récupérer les informations du stream")
+                return redirect_to_404()
             end
 
             -- Analyser la réponse sous la forme {adresse IP}|{nom}
             local ip, channel_name = res.body:match("([^|]+)|([^|]+)")
             if not ip or not channel_name then
-                return redirect_to_404()  -- Redirection si le format de réponse est invalide
+                ngx.log(ngx.ERR, "Erreur: Format de réponse invalide")
+                return redirect_to_404()
             end
 
-            -- Construire l'URL de redirection avec l'adresse IP et le nom de canal
+            -- Construire l'URL de redirection
             local target_url = "http://" .. ip .. "/live/" .. channel_name .. "?token=" .. token
 
-            -- Effectuer la redirection
-            return ngx.redirect(target_url)
+            -- Effectuer la redirection vers le bon serveur
+            ngx.redirect(target_url)
         }
     }
 

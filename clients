@@ -34,26 +34,17 @@ server {
     }
 
     location /live/ {
-    content_by_lua_block {
+        content_by_lua_block {
         local json = require("cjson")
         local http = require("resty.http")
 
-        -- Configuration des adresses
-        local serveur1 = "localhost:9090"
-        -- Mapper les IPs locales vers l'IP publique
-        local ip_mapping = {
-            ["192.168.1.39"] = "king.admin.root.sx:9090"  -- Remplacez par votre IP/domaine public
-        }
-
-        -- Fonction pour nettoyer les chaînes
+        -- Fonction pour nettoyer les chaînes (enlever les espaces et sauts de ligne)
         local function trim(s)
             return (s:gsub("^%s*(.-)%s*$", "%1"))
         end
 
-        -- Fonction pour traduire l'IP locale en IP publique
-        local function translate_ip(local_ip)
-            return ip_mapping[local_ip] or local_ip
-        end
+        -- Définir l'adresse du serveur1
+        local serveur1 = "localhost:9090"
 
         -- Fonction pour rediriger vers 404.mp4
         local function redirect_to_404()
@@ -144,7 +135,7 @@ server {
             return redirect_to_404()
         end
 
-        -- Nettoyer la réponse
+        -- Nettoyer la réponse des espaces et sauts de ligne
         local clean_body = trim(res.body)
         ngx.log(ngx.ERR, "Corps de la réponse nettoyé: " .. clean_body)
 
@@ -159,21 +150,17 @@ server {
         ip = trim(ip)
         channel_name = trim(channel_name)
 
-        -- Traduire l'IP locale en IP publique
-        local public_ip = translate_ip(ip)
-        ngx.log(ngx.ERR, "IP traduite: " .. ip .. " -> " .. public_ip)
-
         -- Générer le token
         local token = ngx.encode_base64(tostring(ngx.now()))
 
         -- Construire l'URL de redirection
-        local target_url = "http://" .. public_ip .. "/live/" .. channel_name .. "?token=" .. token
+        local target_url = "http://" .. ip .. "/live/" .. channel_name .. "?token=" .. token
         ngx.log(ngx.ERR, "Redirection vers: " .. target_url)
 
         -- Effectuer la redirection
         ngx.redirect(target_url)
+        }
     }
-}
 
 
     location /clients.json {

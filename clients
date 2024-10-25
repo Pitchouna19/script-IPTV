@@ -39,7 +39,7 @@ server {
         local http = require("resty.http")
 
         -- Définir l'adresse du serveur1
-        local serveur1 = "localhost:9090"  -- Remplacez par l'adresse réelle de votre serveur
+        local serveur1 = "localhost:9090"
 
         -- Fonction pour rediriger vers 404.mp4
         local function redirect_to_404()
@@ -48,10 +48,10 @@ server {
         end
 
         -- Charger et lire le fichier acces.json
-        local file = io.open("/var/www/html/acces.json", "r")  -- Chemin corrigé
+        local file = io.open("/var/www/html/acces.json", "r")
         if not file then
             ngx.log(ngx.ERR, "Erreur: Impossible d'ouvrir acces.json")
-            return redirect_to_404()  -- Redirection si le fichier est introuvable
+            return redirect_to_404()
         end
 
         local data = file:read("*a")
@@ -60,7 +60,7 @@ server {
         local ok, users = pcall(json.decode, data)
         if not ok then
             ngx.log(ngx.ERR, "Erreur: Format JSON invalide")
-            return redirect_to_404()  -- Redirection si le JSON est incorrect
+            return redirect_to_404()
         end
 
         -- Extraire user et pass depuis l'URI
@@ -70,12 +70,8 @@ server {
             return redirect_to_404()
         end
 
-        -- Ajouter des logs pour les identifiants
-        ngx.log(ngx.ERR, "User: " .. tostring(user) .. ", Pass: " .. tostring(pass))
-
-        -- Fonction de vérification des identifiants
+        -- Vérification des identifiants
         local function check_credentials(user, pass)
-            ngx.log(ngx.ERR, "Vérification des identifiants pour User: " .. tostring(user) .. ", Pass: " .. tostring(pass))
             for _, u in ipairs(users.users) do
                 if u.user == user and u.pass == pass then
                     return true
@@ -84,64 +80,74 @@ server {
             return false
         end
 
-        -- Vérifier les identifiants
         if not check_credentials(user, pass) then
             ngx.log(ngx.ERR, "Accès refusé : Identifiants incorrects")
             return redirect_to_404()
         end
 
-        -- Générer un token unique
-        local token = ngx.encode_base64(tostring(ngx.now()))
-
-        -- Extraire l'ID du stream depuis l'URL
+        -- Extraire l'ID du stream
         local id_stream = ngx.var.uri:match("/live/[^/]+/[^/]+/(.+)")
         if not id_stream then
             ngx.log(ngx.ERR, "Erreur: ID du stream manquant")
             return redirect_to_404()
         end
 
-        -- Ajouter un log pour l'ID du stream
-        ngx.log(ngx.ERR, "ID du stream : " .. tostring(id_stream))
-
-        -- Créer un client HTTP et définir un délai d’expiration
+        -- Créer un client HTTP avec une configuration appropriée
         local httpc = http.new()
-        httpc:set_timeout(5000)  -- Timeout de 5 secondes
+        httpc:set_timeout(5000)
 
-        -- Effectuer une requête vers /streaming pour récupérer {IP}|{nom}
+        -- Configuration de la requête avec plus de détails
         local res, err = httpc:request_uri("http://127.0.0.1:9090/streaming", {
             method = "GET",
-            query = { name = id_stream },
-            headers = { ["Host"] = "localhost:9090" },  -- En-tête Host explicite
+            headers = {
+                ["Host"] = "localhost:9090",
+                ["User-Agent"] = "OpenResty/Internal",
+                ["Accept"] = "*/*"
+            },
+            query = {
+                name = id_stream
+            },
+            keepalive_timeout = 60,
+            keepalive_pool = 10
         })
 
-        -- Log pour vérifier si une erreur HTTP a eu lieu
+        -- Gestion des erreurs de connexion
         if err then
-            ngx.log(ngx.ERR, "Erreur HTTP : " .. tostring(err))
-        end
-
-        -- Ajouter un log pour voir la réponse brute
-        ngx.log(ngx.ERR, "Réponse de /streaming : " .. (res and res.body or "nil"))
-
-        -- Vérifier si la réponse est valide
-        if not res or res.status ~= 200 then
-            ngx.log(ngx.ERR, "Erreur: Impossible de récupérer les informations du stream, statut : " .. tostring(res and res.status or "nil"))
+            ngx.log(ngx.ERR, "Erreur de connexion HTTP: " .. tostring(err))
             return redirect_to_404()
         end
 
-        -- Analyser la réponse sous la forme {adresse IP}|{nom}
+        -- Gestion des erreurs de réponse
+        if not res then
+            ngx.log(ngx.ERR, "Pas de réponse du serveur streaming")
+            return redirect_to_404()
+        end
+
+        -- Log de la réponse complète pour le débogage
+        ngx.log(ngx.ERR, "Statut de la réponse: " .. tostring(res.status))
+        ngx.log(ngx.ERR, "Corps de la réponse: " .. tostring(res.body))
+
+        -- Vérification du statut HTTP
+        if res.status ~= 200 then
+            ngx.log(ngx.ERR, "Erreur: Statut HTTP invalide: " .. tostring(res.status))
+            return redirect_to_404()
+        end
+
+        -- Analyse de la réponse
         local ip, channel_name = res.body:match("([^|]+)|([^|]+)")
         if not ip or not channel_name then
-            ngx.log(ngx.ERR, "Erreur: Format de réponse invalide")
+            ngx.log(ngx.ERR, "Erreur: Format de réponse invalide: " .. tostring(res.body))
             return redirect_to_404()
         end
 
-        -- Construire l'URL de redirection
-        local target_url = "http://" .. ip .. "/live/" .. channel_name .. "?token=" .. token
-        ngx.log(ngx.ERR, "Redirection vers : " .. target_url)
+        -- Générer le token
+        local token = ngx.encode_base64(tostring(ngx.now()))
 
-        -- Effectuer la redirection vers le bon serveur
+        -- Construire et effectuer la redirection
+        local target_url = "http://" .. ip .. "/live/" .. channel_name .. "?token=" .. token
+        ngx.log(ngx.ERR, "Redirection vers: " .. target_url)
         ngx.redirect(target_url)
-        }
+       }
     }
 
 

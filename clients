@@ -34,7 +34,7 @@ server {
     }
 
     location /live/ {
-        content_by_lua_block {
+    content_by_lua_block {
         local json = require("cjson")
         local http = require("resty.http")
 
@@ -71,11 +71,11 @@ server {
         end
 
         -- Ajouter des logs pour les identifiants
-        ngx.log(ngx.INFO, "User: " .. tostring(user) .. ", Pass: " .. tostring(pass))
+        ngx.log(ngx.ERR, "User: " .. tostring(user) .. ", Pass: " .. tostring(pass))
 
         -- Fonction de vérification des identifiants
         local function check_credentials(user, pass)
-            ngx.log(ngx.INFO, "Vérification des identifiants pour User: " .. tostring(user) .. ", Pass: " .. tostring(pass))
+            ngx.log(ngx.ERR, "Vérification des identifiants pour User: " .. tostring(user) .. ", Pass: " .. tostring(pass))
             for _, u in ipairs(users.users) do
                 if u.user == user and u.pass == pass then
                     return true
@@ -101,7 +101,7 @@ server {
         end
 
         -- Ajouter un log pour l'ID du stream
-        ngx.log(ngx.INFO, "ID du stream : " .. tostring(id_stream))
+        ngx.log(ngx.ERR, "ID du stream : " .. tostring(id_stream))
 
         -- Effectuer une requête vers /streaming pour récupérer {IP}|{nom}
         local httpc = http.new()
@@ -109,6 +109,9 @@ server {
             method = "GET",
             query = { name = id_stream },
         })
+
+        -- Ajouter un log pour voir la réponse brute
+        ngx.log(ngx.ERR, "Réponse de /streaming : " .. (res and res.body or "nil"))
 
         if not res or res.status ~= 200 then
             ngx.log(ngx.ERR, "Erreur: Impossible de récupérer les informations du stream, statut : " .. tostring(res and res.status or "nil"))
@@ -124,12 +127,13 @@ server {
 
         -- Construire l'URL de redirection
         local target_url = "http://" .. ip .. "/live/" .. channel_name .. "?token=" .. token
-        ngx.log(ngx.INFO, "Redirection vers : " .. target_url)
+        ngx.log(ngx.ERR, "Redirection vers : " .. target_url)
 
         -- Effectuer la redirection vers le bon serveur
         ngx.redirect(target_url)
-        }
     }
+}
+
 
 
 

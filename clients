@@ -28,6 +28,67 @@ server {
         index index.html;
     }
 
+    location /live/ {
+        content_by_lua_block {
+            local json = require("cjson")
+            local http = require("resty.http")
+
+            -- Charger et lire le fichier acces.json
+            local file = io.open("/root/acces.json", "r")
+            if not file then
+                ngx.status = 500
+                ngx.say("Erreur: Impossible d'ouvrir acces.json")
+                return
+            end
+
+            local data = file:read("*a")
+            file:close()
+
+            local ok, users = pcall(json.decode, data)
+            if not ok then
+                ngx.status = 500
+                ngx.say("Erreur: JSON invalide")
+                return
+            end
+
+            -- Extraire user et pass depuis l'URL
+            local user = ngx.var.arg_user
+            local pass = ngx.var.arg_pass
+
+            -- Fonction de vérification des identifiants
+            local function check_credentials(user, pass)
+                for _, u in ipairs(users.users) do
+                    if u.user == user and u.pass == pass then
+                        return true
+                    end
+                end
+                return false
+            end
+
+            -- Vérifier les identifiants
+            if not check_credentials(user, pass) then
+                ngx.status = 401
+                ngx.say("Accès refusé : Utilisateur ou mot de passe incorrect")
+                return
+            end
+
+            -- Générer un token unique
+            local token = ngx.encode_base64(tostring(ngx.now()))
+
+            -- Extraire l'ID du stream depuis l'URL
+            local id_stream = ngx.var.uri:match("/live/[^/]+/[^/]+/(.+)")
+            if not id_stream then
+                ngx.status = 400
+                ngx.say("Requête invalide : ID stream manquant")
+                return
+            end
+
+            -- Redirection vers serveur2 avec token et id_stream
+            local target_url = "http://serveur2.example.com/live/" .. id_stream .. "?token=" .. token
+            return ngx.redirect(target_url)
+        }
+    }
+
     location /clients.json {
         alias /var/www/html/clients.json;
         default_type application/json;

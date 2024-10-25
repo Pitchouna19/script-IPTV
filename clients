@@ -38,6 +38,11 @@ server {
         local json = require("cjson")
         local http = require("resty.http")
 
+        -- Fonction pour nettoyer les chaînes (enlever les espaces et sauts de ligne)
+        local function trim(s)
+            return (s:gsub("^%s*(.-)%s*$", "%1"))
+        end
+
         -- Définir l'adresse du serveur1
         local serveur1 = "localhost:9090"
 
@@ -92,11 +97,11 @@ server {
             return redirect_to_404()
         end
 
-        -- Créer un client HTTP avec une configuration appropriée
+        -- Créer un client HTTP
         local httpc = http.new()
         httpc:set_timeout(5000)
 
-        -- Configuration de la requête avec plus de détails
+        -- Configuration de la requête
         local res, err = httpc:request_uri("http://127.0.0.1:9090/streaming", {
             method = "GET",
             headers = {
@@ -111,43 +116,50 @@ server {
             keepalive_pool = 10
         })
 
-        -- Gestion des erreurs de connexion
         if err then
             ngx.log(ngx.ERR, "Erreur de connexion HTTP: " .. tostring(err))
             return redirect_to_404()
         end
 
-        -- Gestion des erreurs de réponse
         if not res then
             ngx.log(ngx.ERR, "Pas de réponse du serveur streaming")
             return redirect_to_404()
         end
 
-        -- Log de la réponse complète pour le débogage
+        -- Log de la réponse
         ngx.log(ngx.ERR, "Statut de la réponse: " .. tostring(res.status))
-        ngx.log(ngx.ERR, "Corps de la réponse: " .. tostring(res.body))
+        ngx.log(ngx.ERR, "Corps de la réponse brut: " .. tostring(res.body))
 
-        -- Vérification du statut HTTP
         if res.status ~= 200 then
             ngx.log(ngx.ERR, "Erreur: Statut HTTP invalide: " .. tostring(res.status))
             return redirect_to_404()
         end
 
-        -- Analyse de la réponse
-        local ip, channel_name = res.body:match("([^|]+)|([^|]+)")
+        -- Nettoyer la réponse des espaces et sauts de ligne
+        local clean_body = trim(res.body)
+        ngx.log(ngx.ERR, "Corps de la réponse nettoyé: " .. clean_body)
+
+        -- Analyse de la réponse nettoyée
+        local ip, channel_name = clean_body:match("([^|]+)|([^|]+)")
         if not ip or not channel_name then
-            ngx.log(ngx.ERR, "Erreur: Format de réponse invalide: " .. tostring(res.body))
+            ngx.log(ngx.ERR, "Erreur: Format de réponse invalide: " .. tostring(clean_body))
             return redirect_to_404()
         end
+
+        -- Nettoyer l'IP et le nom du channel
+        ip = trim(ip)
+        channel_name = trim(channel_name)
 
         -- Générer le token
         local token = ngx.encode_base64(tostring(ngx.now()))
 
-        -- Construire et effectuer la redirection
+        -- Construire l'URL de redirection
         local target_url = "http://" .. ip .. "/live/" .. channel_name .. "?token=" .. token
         ngx.log(ngx.ERR, "Redirection vers: " .. target_url)
+
+        -- Effectuer la redirection
         ngx.redirect(target_url)
-       }
+        }
     }
 
 

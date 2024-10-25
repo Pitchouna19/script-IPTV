@@ -28,6 +28,11 @@ server {
         index index.html;
     }
 
+    location /live/404.mp4 {
+        root /var/www/html/404.mp4;  # Remplacez par le chemin où se trouve 404.mp4
+        internal;  # Pour éviter des accès directs depuis l'extérieur
+    }
+
     location /live/ {
         content_by_lua_block {
             local json = require("cjson")

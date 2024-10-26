@@ -79,7 +79,7 @@ function firewall_client_open() {
         return 1
     }
 
-    local ports=(8080 1985 1883 22)
+    local ports=(8080 9090 1985 1883 22)
     for port in "${ports[@]}"; do
         echo "Ouverture du port $port..."
         sudo ufw allow "$port" || {

@@ -280,62 +280,7 @@ server {
         add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
         add_header Pragma "no-cache";
         expires off;
-    }
-
-    location /streaming {
-        content_by_lua_block {
-            local cjson = require "cjson"
-
-            -- Ouvrir et lire le fichier streaming_run.json
-            local file = io.open("/var/www/html/streaming_run.json", "r")
-            if not file then
-                ngx.say("999")  -- Retourner 999 si le fichier ne peut pas être lu
-                return
-            end
-
-            local content = file:read("*all")
-            file:close()
-            local data = cjson.decode(content)
-
-            -- Récupérer la valeur du paramètre `name` depuis l'URL
-            local channel_name = ngx.var.arg_name
-            if not channel_name then
-                ngx.say("333")  -- Retourner 333 si le paramètre 'name' est manquant
-                return
-            end
-
-            -- Transformer channel_name en pattern Lua pour ignorer le chiffre central
-            local pattern = "^" .. channel_name:gsub("_(%d+)_", "_%%d+_") .. "$"
-
-            -- Chercher le serveur et le channel correspondant
-            local best_server = nil
-            local matched_channel = nil
-            local min_nbc = math.huge  -- Initialisation à l'infini
-
-            for _, server in ipairs(data) do
-                if server.channel:match(pattern) then
-                    if server.nbc < min_nbc then
-                        min_nbc = server.nbc
-                        best_server = server.serveur
-                        matched_channel = server.channel  -- Stocker le channel correspondant
-                    elseif server.nbc == min_nbc then
-                        -- En cas d'égalité, choisir un serveur aléatoirement
-                        if math.random() < 0.5 then
-                            best_server = server.serveur
-                            matched_channel = server.channel
-                        end
-                    end
-                end
-            end
-
-            -- Retourner la réponse appropriée
-            if best_server and matched_channel then
-                ngx.say(best_server .. "|" .. matched_channel)
-            else
-                ngx.say("666")  -- Retourner 666 si aucun serveur n'est trouvé
-            end
-        }
-    }
+    }    
 
 
 }

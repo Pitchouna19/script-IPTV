@@ -36,23 +36,19 @@ server {
     location /live/ {
         content_by_lua_block {
         local json = require("cjson")
-        local http = require("resty.http")
-
-        -- Fonction pour nettoyer les chaînes (enlever les espaces et sauts de ligne)
+        
+        -- Fonction pour nettoyer les chaînes
         local function trim(s)
             return (s:gsub("^%s*(.-)%s*$", "%1"))
         end
 
-        -- Définir l'adresse du serveur1
-        local serveur1 = "localhost:9090"
-
         -- Fonction pour rediriger vers 404.mp4
         local function redirect_to_404()
-            local error_url = "http://" .. serveur1 .. "/live/404.mp4"
+            local error_url = "http://localhost:9090/live/404.mp4"
             ngx.redirect(error_url)
         end
 
-        -- Charger et lire le fichier acces.json
+        -- Charger et vérifier acces.json
         local file = io.open("/var/www/html/acces.json", "r")
         if not file then
             ngx.log(ngx.ERR, "Erreur: Impossible d'ouvrir acces.json")
@@ -97,71 +93,59 @@ server {
             return redirect_to_404()
         end
 
-        -- Créer un client HTTP
-        local httpc = http.new()
-        httpc:set_timeout(5000)
-
-        -- Configuration de la requête
-        local res, err = httpc:request_uri("http://127.0.0.1:9090/streaming", {
-            method = "GET",
-            headers = {
-                ["Host"] = "localhost:9090",
-                ["User-Agent"] = "OpenResty/Internal",
-                ["Accept"] = "*/*"
-            },
-            query = {
-                name = id_stream
-            },
-            keepalive_timeout = 60,
-            keepalive_pool = 10
-        })
-
-        if err then
-            ngx.log(ngx.ERR, "Erreur de connexion HTTP: " .. tostring(err))
+        -- INTÉGRATION DE LA LOGIQUE STREAMING --
+        -- Charger streaming_run.json
+        local streaming_file = io.open("/var/www/html/streaming_run.json", "r")
+        if not streaming_file then
+            ngx.log(ngx.ERR, "Erreur: Impossible d'ouvrir streaming_run.json")
             return redirect_to_404()
         end
 
-        if not res then
-            ngx.log(ngx.ERR, "Pas de réponse du serveur streaming")
-            return redirect_to_404()
+        local streaming_content = streaming_file:read("*all")
+        streaming_file:close()
+
+        local streaming_data = json.decode(streaming_content)
+
+        -- Transformer id_stream en pattern Lua
+        local pattern = "^" .. id_stream:gsub("_(%d+)_", "_%%d+_") .. "$"
+
+        -- Chercher le meilleur serveur
+        local best_server = nil
+        local matched_channel = nil
+        local min_nbc = math.huge
+
+        for _, server in ipairs(streaming_data) do
+            if server.channel:match(pattern) then
+                if server.nbc < min_nbc then
+                    min_nbc = server.nbc
+                    best_server = server.serveur
+                    matched_channel = server.channel
+                elseif server.nbc == min_nbc then
+                    if math.random() < 0.5 then
+                        best_server = server.serveur
+                        matched_channel = server.channel
+                    end
+                end
+            end
         end
 
-        -- Log de la réponse
-        ngx.log(ngx.ERR, "Statut de la réponse: " .. tostring(res.status))
-        ngx.log(ngx.ERR, "Corps de la réponse brut: " .. tostring(res.body))
-
-        if res.status ~= 200 then
-            ngx.log(ngx.ERR, "Erreur: Statut HTTP invalide: " .. tostring(res.status))
+        -- Vérifier si un serveur a été trouvé
+        if not best_server or not matched_channel then
+            ngx.log(ngx.ERR, "Erreur: Aucun serveur disponible")
             return redirect_to_404()
         end
-
-        -- Nettoyer la réponse des espaces et sauts de ligne
-        local clean_body = trim(res.body)
-        ngx.log(ngx.ERR, "Corps de la réponse nettoyé: " .. clean_body)
-
-        -- Analyse de la réponse nettoyée
-        local ip, channel_name = clean_body:match("([^|]+)|([^|]+)")
-        if not ip or not channel_name then
-            ngx.log(ngx.ERR, "Erreur: Format de réponse invalide: " .. tostring(clean_body))
-            return redirect_to_404()
-        end
-
-        -- Nettoyer l'IP et le nom du channel
-        ip = trim(ip)
-        channel_name = trim(channel_name)
 
         -- Générer le token
         local token = ngx.encode_base64(tostring(ngx.now()))
 
         -- Construire l'URL de redirection
-        local target_url = "http://" .. ip .. "/live/" .. channel_name .. "?token=" .. token
+        local target_url = "http://" .. best_server .. "/live/" .. matched_channel .. "?token=" .. token
         ngx.log(ngx.ERR, "Redirection vers: " .. target_url)
 
         -- Effectuer la redirection
         ngx.redirect(target_url)
         }
     }
-
 
     location /clients.json {
         alias /var/www/html/clients.json;

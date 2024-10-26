@@ -138,8 +138,8 @@ server {
         -- Générer le token
         local token = ngx.encode_base64(tostring(ngx.now()))
 
-        -- Construire l'URL de redirection
-        local target_url = "http://" .. best_server .. "/live/" .. matched_channel .. "?token=" .. token
+        -- Construire l'URL de redirection avec l'utilisateur
+        local target_url = "http://" .. best_server .. "/live/" .. user .. "/" .. matched_channel .. "?token=" .. token
         ngx.log(ngx.ERR, "Redirection vers: " .. target_url)
 
         -- Effectuer la redirection

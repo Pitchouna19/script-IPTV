@@ -138,11 +138,8 @@ server {
         -- Générer le token
         local token = ngx.encode_base64(tostring(ngx.now()))
 
-        -- Récupérer l'adresse IP du client
-        local client_ip = ngx.var.remote_addr
-
         -- Construire l'URL de redirection avec l'utilisateur
-        local target_url = "http://" .. best_server .. ":9090/live/" .. matched_channel .. "?token=" .. token .. "&user=" .. user .. "&ip=" .. client_ip
+        local target_url = "http://" .. best_server .. ":9090/live/" .. matched_channel .. "?token=" .. token .. "&user=" .. user
         ngx.log(ngx.ERR, "Redirection vers: " .. target_url)
 
         -- Effectuer la redirection

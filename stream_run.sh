@@ -3,6 +3,7 @@
 # Définir le chemin du fichier JSON source et de sortie
 JSON_FILE="/var/www/html/monitoring.json"
 OUTPUT_FILE="/var/www/html/streaming_run.json"
+TEMP_FILE="/var/www/html/streaming_run_temp.json"
 
 while true; do
   # Vérifier si le fichier monitoring.json existe
@@ -11,8 +12,13 @@ while true; do
     exit 1
   fi
 
-  # Générer le contenu du fichier streaming_run.json
-  echo "[" > "$OUTPUT_FILE"  # Début du tableau JSON
+  # Vérifier si le fichier temporaire existe, sinon le créer
+  if [[ ! -f "$TEMP_FILE" ]]; then
+    touch "$TEMP_FILE"
+  fi
+
+  # Générer le contenu du fichier streaming_run.json dans un fichier temporaire
+  echo "[" > "$TEMP_FILE"  # Début du tableau JSON
 
   # Lire chaque serveur et récupérer les informations nécessaires
   jq -c '.[]' "$JSON_FILE" | while read -r server_info; do
@@ -40,19 +46,29 @@ while true; do
       continue
     fi
 
-    # Écrire l'objet JSON pour ce serveur dans le fichier de sortie
-    echo "{" >> "$OUTPUT_FILE"
-    echo "  \"serveur\": \"$server\"," >> "$OUTPUT_FILE"
-    echo "  \"channel\": \"$channels\"," >> "$OUTPUT_FILE"
-    echo "  \"nbcompe\": \"$nbcompe\"," >> "$OUTPUT_FILE"
-    echo "  \"nbc\": $nbc," >> "$OUTPUT_FILE"
-    echo "  \"nbs\": $streams_total" >> "$OUTPUT_FILE"
-    echo "}," >> "$OUTPUT_FILE"
+    # Construire le tableau des channels avec .clients - 1
+    channel_array=$(echo "$streams" | jq -c '[.[] | {nom: .name, id: .id, clients: (.clients - 1), cid: .publish.cid}]')
+
+    # Construire le tableau des clients avec .publish == false et enlever les extensions des noms
+    client_array=$(echo "$server_info" | jq -c '[.clients[] | select(.publish == false) | {nom: (.name | sub("\\.(flv|mp4|m3u8|ts|avi|mov)$"; "")), id: .id, ip: .ip, alive: .alive}]')
+
+    # Écrire l'objet JSON pour ce serveur dans le fichier temporaire
+    echo "{" >> "$TEMP_FILE"
+    echo "  \"serveur\": \"$server\"," >> "$TEMP_FILE"
+    echo "  \"channel\": $channel_array," >> "$TEMP_FILE"
+    echo "  \"client\": $client_array," >> "$TEMP_FILE"
+    echo "  \"nbcompe\": \"$nbcompe\"," >> "$TEMP_FILE"
+    echo "  \"nbc\": $nbc," >> "$TEMP_FILE"
+    echo "  \"nbs\": $streams_total" >> "$TEMP_FILE"
+    echo "}," >> "$TEMP_FILE"
   done
 
   # Supprimer la dernière virgule et fermer le tableau JSON
-  sed -i '$ s/,$//' "$OUTPUT_FILE"
-  echo "]" >> "$OUTPUT_FILE"
+  sed -i '$ s/,$//' "$TEMP_FILE"
+  echo "]" >> "$TEMP_FILE"
+
+  # Remplacer le fichier de sortie final par le fichier temporaire
+  mv "$TEMP_FILE" "$OUTPUT_FILE"
 
   echo "Le fichier $OUTPUT_FILE a été généré avec succès."
 

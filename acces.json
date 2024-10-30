@@ -1,0 +1,6 @@
+{
+  "users": [
+    { "user": "user1", "pass": "pass1", "limite":"1", "groupe":"all" },
+    { "user": "user2", "pass": "pass2", "limite":"1", "groupe":"all" }
+  ]
+}

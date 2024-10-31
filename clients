@@ -35,117 +35,120 @@ server {
 
     location /live/ {
         content_by_lua_block {
-        local json = require("cjson")
-        
-        -- Fonction pour nettoyer les chaînes
-        local function trim(s)
-            return (s:gsub("^%s*(.-)%s*$", "%1"))
-        end
-
-        -- Fonction pour rediriger vers 404.mp4
-        local function redirect_to_404()
-            local error_url = "http://localhost:9090/live/404.mp4"
-            ngx.redirect(error_url)
-        end
-
-        -- Charger et vérifier acces.json
-        local file = io.open("/var/www/html/acces.json", "r")
-        if not file then
-            ngx.log(ngx.ERR, "Erreur: Impossible d'ouvrir acces.json")
-            return redirect_to_404()
-        end
-
-        local data = file:read("*a")
-        file:close()
-
-        local ok, users = pcall(json.decode, data)
-        if not ok then
-            ngx.log(ngx.ERR, "Erreur: Format JSON invalide")
-            return redirect_to_404()
-        end
-
-        -- Extraire user et pass depuis l'URI
-        local user, pass = ngx.var.uri:match("/live/([^/]+)/([^/]+)/")
-        if not user or not pass then
-            ngx.log(ngx.ERR, "Erreur: Identifiants manquants dans l'URL")
-            return redirect_to_404()
-        end
-
-        -- Vérification des identifiants
-        local function check_credentials(user, pass)
-            for _, u in ipairs(users.users) do
-                if u.user == user and u.pass == pass then
-                    return true
-                end
+            local json = require("cjson")
+            
+            -- Fonction pour nettoyer les chaînes
+            local function trim(s)
+                return (s:gsub("^%s*(.-)%s*$", "%1"))
             end
-            return false
-        end
-
-        if not check_credentials(user, pass) then
-            ngx.log(ngx.ERR, "Accès refusé : Identifiants incorrects")
-            return redirect_to_404()
-        end
-
-        -- Extraire l'ID du stream
-        local id_stream = ngx.var.uri:match("/live/[^/]+/[^/]+/(.+)")
-        if not id_stream then
-            ngx.log(ngx.ERR, "Erreur: ID du stream manquant")
-            return redirect_to_404()
-        end
-
-        -- INTÉGRATION DE LA LOGIQUE STREAMING --
-        -- Charger streaming_run.json
-        local streaming_file = io.open("/var/www/html/streaming_run.json", "r")
-        if not streaming_file then
-            ngx.log(ngx.ERR, "Erreur: Impossible d'ouvrir streaming_run.json")
-            return redirect_to_404()
-        end
-
-        local streaming_content = streaming_file:read("*all")
-        streaming_file:close()
-
-        local streaming_data = json.decode(streaming_content)
-
-        -- Transformer id_stream en pattern Lua
-        local pattern = "^" .. id_stream:gsub("_(%d+)_", "_%%d+_") .. "$"
-
-        -- Chercher le meilleur serveur
-        local best_server = nil
-        local matched_channel = nil
-        local min_nbc = math.huge
-
-        for _, server in ipairs(streaming_data) do
-            if server.channel:match(pattern) then
-                if server.nbc < min_nbc then
-                    min_nbc = server.nbc
-                    best_server = server.serveur
-                    matched_channel = server.channel
-                elseif server.nbc == min_nbc then
-                    if math.random() < 0.5 then
-                        best_server = server.serveur
-                        matched_channel = server.channel
+    
+            -- Fonction pour rediriger vers 404.mp4
+            local function redirect_to_404()
+                local error_url = "http://localhost:9090/live/404.mp4"
+                ngx.redirect(error_url)
+            end
+    
+            -- Charger et vérifier acces.json
+            local file = io.open("/var/www/html/acces.json", "r")
+            if not file then
+                ngx.log(ngx.ERR, "Erreur: Impossible d'ouvrir acces.json")
+                return redirect_to_404()
+            end
+    
+            local data = file:read("*a")
+            file:close()
+    
+            local ok, users = pcall(json.decode, data)
+            if not ok then
+                ngx.log(ngx.ERR, "Erreur: Format JSON invalide")
+                return redirect_to_404()
+            end
+    
+            -- Extraire user et pass depuis l'URI
+            local user, pass = ngx.var.uri:match("/live/([^/]+)/([^/]+)/")
+            if not user or not pass then
+                ngx.log(ngx.ERR, "Erreur: Identifiants manquants dans l'URL")
+                return redirect_to_404()
+            end
+    
+            -- Vérification des identifiants et des limites
+            local function check_credentials(user, pass)
+                for _, u in ipairs(users.users) do
+                    if u.user == user and u.pass == pass then
+                        return true, u.limite, u.groupe
+                    end
+                end
+                return false
+            end
+    
+            local authorized, user_limit, user_group = check_credentials(user, pass)
+            if not authorized then
+                ngx.log(ngx.ERR, "Accès refusé : Identifiants incorrects")
+                return redirect_to_404()
+            end
+    
+            -- Extraire l'ID du stream
+            local id_stream = ngx.var.uri:match("/live/[^/]+/[^/]+/(.+)")
+            if not id_stream then
+                ngx.log(ngx.ERR, "Erreur: ID du stream manquant")
+                return redirect_to_404()
+            end
+    
+            -- Charger streaming_run.json
+            local streaming_file = io.open("/var/www/html/streaming_run.json", "r")
+            if not streaming_file then
+                ngx.log(ngx.ERR, "Erreur: Impossible d'ouvrir streaming_run.json")
+                return redirect_to_404()
+            end
+    
+            local streaming_content = streaming_file:read("*all")
+            streaming_file:close()
+    
+            local ok, streaming_data = pcall(json.decode, streaming_content)
+            if not ok then
+                ngx.log(ngx.ERR, "Erreur: Format JSON invalide dans streaming_run.json")
+                return redirect_to_404()
+            end
+    
+            -- Vérification du canal disponible pour le stream
+            local best_server = nil
+            local matched_channel = nil
+            local min_nbc = math.huge
+    
+            for _, server in ipairs(streaming_data) do
+                for _, channel in ipairs(server.channel) do
+                    if channel.nom == id_stream then
+                        if server.nbc < min_nbc then
+                            min_nbc = server.nbc
+                            best_server = server.serveur
+                            matched_channel = channel.nom
+                        elseif server.nbc == min_nbc then
+                            if math.random() < 0.5 then
+                                best_server = server.serveur
+                                matched_channel = channel.nom
+                            end
+                        end
                     end
                 end
             end
-        end
-
-        -- Vérifier si un serveur a été trouvé
-        if not best_server or not matched_channel then
-            ngx.log(ngx.ERR, "Erreur: Aucun serveur disponible")
-            return redirect_to_404()
-        end
-
-        -- Générer le token
-        local token = ngx.encode_base64(tostring(ngx.now()))
-        -- Récupérer l'adresse IP du client
-        local client_ip = ngx.var.remote_addr
-
-        -- Construire l'URL de redirection avec l'utilisateur
-        local target_url = "http://" .. best_server .. ":9090/live/" .. matched_channel .. "?token=" .. token .. "&user=" .. user .. "&ip=" .. client_ip
-        ngx.log(ngx.ERR, "Redirection vers: " .. target_url)
-
-        -- Effectuer la redirection
-        ngx.redirect(target_url)
+    
+            -- Vérifier si un serveur a été trouvé
+            if not best_server or not matched_channel then
+                ngx.log(ngx.ERR, "Erreur: Aucun serveur disponible")
+                return redirect_to_404()
+            end
+    
+            -- Générer le token
+            local token = ngx.encode_base64(tostring(ngx.now()))
+            -- Récupérer l'adresse IP du client
+            local client_ip = ngx.var.remote_addr
+    
+            -- Construire l'URL de redirection avec l'utilisateur
+            local target_url = "http://" .. best_server .. ":9090/live/" .. matched_channel .. "?token=" .. token .. "&user=" .. user .. "&ip=" .. client_ip
+            ngx.log(ngx.ERR, "Redirection vers: " .. target_url)
+    
+            -- Effectuer la redirection
+            ngx.redirect(target_url)
         }
     }
 

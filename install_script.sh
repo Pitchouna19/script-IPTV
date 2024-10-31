@@ -514,7 +514,7 @@ function installation_openresty_client() {
     echo "Démarrage d'OpenResty en cours..."
     sleep 1
     # Copie du nginx_client.conf vers /etc/openresty/
-    sudo cp nginx_client.conf /etc/openresty/
+    sudo cp nginx_client.conf /etc/openresty/nginx.conf
     sleep 2      
     sudo systemctl enable openresty                
     sudo systemctl start openresty

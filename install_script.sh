@@ -497,6 +497,37 @@ function installation_openresty_server() {
     sleep 5
 }
 
+# Fonction commune : Installation de OpenResty
+function installation_openresty_client() {
+    echo "Installation d'OpenResty en cours..."
+    sudo apt-get -y install --no-install-recommends wget gnupg ca-certificates lsb-release
+    sudo wget -O - https://openresty.org/package/pubkey.gpg | sudo apt-key add -
+    echo "deb http://openresty.org/package/ubuntu $(lsb_release -sc) main" \
+     | sudo tee /etc/apt/sources.list.d/openresty.list
+    sudo apt install -y openresty
+    echo_green "#############################################"
+    echo_green "#                                           #"
+    echo_green "#       Installation OpenResty Serveur OK   #"
+    echo_green "#                                           #"
+    echo_green "#############################################"
+    echo "Démarrage d'OpenResty en cours..."
+    sleep 1
+    # Copie du nginx_client.conf vers /etc/openresty/
+    sudo cp nginx_client.conf /etc/openresty/
+    sleep 2      
+    sudo systemctl enable openresty                
+    sudo systemctl start openresty
+    sleep 5
+
+    if openresty -v &> /dev/null; then
+        echo_green "OpenResty Clients installé avec succès."        
+    else
+        echo_red "L'installation d'OpenResty Client a échoué."
+    fi    
+    sleep 5
+}
+
+
 # Fonction spécifique : Installation en mode Client
 function installation_client() {
     echo "Démarrage de l'installation [Reporting] en mode Client..."
@@ -820,6 +851,7 @@ case $choix in
         installation_client
         installation_Docker
         installation_srs
+        installation_openresty_client        
         ;;
     2)
         mise_a_jour_systeme

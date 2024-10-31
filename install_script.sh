@@ -515,7 +515,12 @@ function installation_openresty_client() {
     sleep 1
     # Copie du nginx_client.conf vers /etc/openresty/
     sudo cp nginx_client.conf /etc/openresty/nginx.conf
-    sleep 2      
+    sleep 2  
+    # Creation fichier log
+    sudo mkdir /var/log/nginx
+    echo "" > /var/log/nginx/access.log
+    echo "" > /var/log/nginx/error.log
+    # Demarage du service
     sudo systemctl enable openresty                
     sudo systemctl start openresty
     sleep 5

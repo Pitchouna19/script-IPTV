@@ -476,6 +476,8 @@ function installation_openresty_server() {
     sudo cp kickoff.json /var/www/html/
     # Copie du script acces.json  vers le path /var/www/html/
     sudo cp acces.json /var/www/html/
+    # Copie du script pass.json  vers le path /etc/openresty/
+    sudo cp pass.json /etc/openresty/
     
     # Copie du script domaine_script.sh vers le path /usr/local/bin/
     #sudo cp domaine_script.sh /usr/local/bin/

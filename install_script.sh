@@ -399,6 +399,10 @@ function installation_srs() {
 
     # Copie du fichier client_report.sh dans /usr/local/bin
     echo "Copie du fichier start-srs.sh vers /usr/local/bin..."
+    sudo mkdir -p /usr/local/etc/srs && sudo cp srs.conf /usr/local/etc/srs/srs.conf
+    
+    # Copie du fichier client_report.sh dans /usr/local/bin
+    echo "Copie du fichier start-srs.sh vers /usr/local/bin..."
     sudo cp start-srs.sh /usr/local/bin/start-srs.sh
 
     # Rendre le script exécutable

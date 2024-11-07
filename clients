@@ -163,7 +163,7 @@ server {
                 return data.pass -- Retourner la clé secrète
             end
 
-            -- Fonction pour générer un *salt* unique
+            -- Fonction pour générer un *salt* unique en hexadécimal
             local function generate_salt()
                 local salt_bytes = random.bytes(16) -- Génère 16 octets aléatoires
                 return str.to_hex(salt_bytes) -- Convertit en une chaîne hexadécimale
@@ -177,8 +177,8 @@ server {
                     return nil
                 end
 
-                local message = salt .. ngx.now()
-                return ngx.encode_base64(ngx.hmac_sha1(secret_key, message))
+                local message = salt
+                return str.to_hex(ngx.hmac_sha1(secret_key, message))
             end
 
             -- Générer le *salt* et le token
@@ -196,11 +196,10 @@ server {
             end
 
             local hex_client_ip = ip_to_hex(client_ip)  -- Convertir l'IP en hexadécimal
-            local encoded_client_ip = ngx.encode_base64(hex_client_ip)  -- Encoder en Base64
 
             -- Vérifier que le token est bien généré avant de construire l'URL de redirection
             if token then
-                local target_url = "http://" .. best_server .. ":8080/live/" .. matched_channel .. ".flv?token=" .. token .. "&salt=" .. salt .. "&cpi=" .. encoded_client_ip
+                local target_url = "http://" .. best_server .. ":8080/live/" .. matched_channel .. ".flv?token=" .. token .. "&salt=" .. salt .. "&cpi=" .. hex_client_ip
                 ngx.log(ngx.ERR, "Redirection vers: " .. target_url)
                 ngx.redirect(target_url)
             else
@@ -209,7 +208,7 @@ server {
         }
     }
 
-    location /clients.json {
+     location /clients.json {
         alias /var/www/html/clients.json;
         default_type application/json;
         add_header Access-Control-Allow-Origin *;
@@ -343,5 +342,5 @@ server {
         add_header Pragma "no-cache";
         expires off;
     } 
-
+ 
 }

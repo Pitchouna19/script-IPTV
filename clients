@@ -184,11 +184,23 @@ server {
             -- Générer le *salt* et le token
             local salt = generate_salt()
             local token = generate_token(salt)
+            local client_ip = ngx.var.remote_addr 
+
+            -- Fonction pour convertir une adresse IP en hexadécimal
+            local function ip_to_hex(ip)
+                local hex_ip = ""
+                for octet in ip:gmatch("(%d+)") do
+                    hex_ip = hex_ip .. string.format("%02x", tonumber(octet))
+                end
+                return hex_ip
+            end
+
+            local hex_client_ip = ip_to_hex(client_ip)  -- Convertir l'IP en hexadécimal
+            local encoded_client_ip = ngx.encode_base64(hex_client_ip)  -- Encoder en Base64
 
             -- Vérifier que le token est bien généré avant de construire l'URL de redirection
             if token then
-                local target_url = "http://" .. best_server .. ":8080/live/" .. matched_channel ..
-                                   ".flv?token=" .. token .. "&salt=" .. salt
+                local target_url = "http://" .. best_server .. ":8080/live/" .. matched_channel .. ".flv?token=" .. token .. "&salt=" .. salt .. "&cpi=" .. encoded_client_ip
                 ngx.log(ngx.ERR, "Redirection vers: " .. target_url)
                 ngx.redirect(target_url)
             else

@@ -184,7 +184,9 @@ server {
             -- Générer le *salt* et le token
             local salt = generate_salt()
             local token = generate_token(salt)
-            local client_ip = ngx.var.remote_addr 
+            local client_ip_without_limit = ngx.var.remote_addr
+            local client_ip = client_ip_without_limit .. ":" .. user_limit
+
 
             -- Fonction pour convertir une adresse IP en hexadécimal
             local function ip_to_hex(ip)

@@ -521,6 +521,8 @@ function installation_openresty_client() {
     sleep 1
     # Copie du nginx_client.conf vers /etc/openresty/
     sudo cp nginx_client.conf /etc/openresty/nginx.conf
+    # Copie du script pass.json  vers le path /etc/openresty/
+    sudo cp pass.json /etc/openresty/
     sleep 2  
     # Creation fichier log
     sudo mkdir /var/log/nginx

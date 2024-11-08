@@ -22,20 +22,23 @@ filtered_ids=$(echo "$json_data" | jq -r --arg ip "$decoded_ip" '.clients[] | se
 # Inversion de l'ordre des IDs
 reversed_ids=$(echo "$filtered_ids" | tac)
 
-# Affichage des IDs inversés, limité au nombre de lignes spécifié
-if [ -z "$limite" ] || [ "$limite" -le 0 ]; then
-    # Si aucune limite n'est spécifiée ou si la limite est invalide, afficher toutes les lignes
-    echo "IDs filtrés et inversés :"
-    echo "$reversed_ids"
-else
-    # Limiter le nombre de lignes affichées
-    echo "IDs filtrés et inversés (limité à $limite lignes) :"
-    reversed_ids=$(echo "$reversed_ids" | head -n "$limite")
-    echo "$reversed_ids"
-fi
+# Nombre de lignes dans la liste inversée
+num_lines=$(echo "$reversed_ids" | wc -l)
 
-# Effectuer la suppression pour chaque ID restant
-for id in $reversed_ids; do
-    echo "Suppression du client avec ID : $id"
-    curl -v -X DELETE "http://127.0.0.1:1985/api/v1/clients/$id"
-done
+# Affichage des IDs inversés, à partir de la ligne spécifiée par limite
+if [ "$limite" -ge "$num_lines" ]; then
+    # Si la limite est supérieure ou égale au nombre d'éléments, ne rien afficher
+    echo "Pas assez d'éléments pour afficher à partir de la ligne $limite."
+else
+    # Afficher à partir de la ligne spécifiée par limite
+    echo "IDs filtrés et inversés, à partir de la ligne $limite :"
+    # Afficher à partir de la ligne spécifiée par limite (en ignorant les premières lignes)
+    filtered_ids_to_delete=$(echo "$reversed_ids" | tail -n +$((limite + 1)))
+    echo "$filtered_ids_to_delete"
+
+    # Suppression pour chaque ID restant
+    for id in $filtered_ids_to_delete; do
+        echo "Suppression du client avec ID : $id"
+        curl -v -X DELETE "http://127.0.0.1:1985/api/v1/clients/$id"
+    done
+fi

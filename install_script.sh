@@ -528,6 +528,9 @@ function installation_openresty_client() {
     sudo mkdir /var/log/nginx
     echo "" > /var/log/nginx/access.log
     echo "" > /var/log/nginx/error.log
+    # Copier le script dell_client.sh
+    sudo mkdir dell
+    sudo cp dell_client.sh /dell/
     # Demarage du service
     sudo systemctl enable openresty                
     sudo systemctl start openresty

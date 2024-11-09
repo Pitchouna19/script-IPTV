@@ -8,7 +8,8 @@ TOPIC="/client/info"
 
 while true; do
     # Récupérer l'IP locale
-    IP_CLIENT=$(curl -s ifconfig.me | awk '{print $1}')
+    IP_CLIENT=$(hostname -I | awk '{print $1}')
+    IP_LOCAL=$(curl -s ifconfig.me | awk '{print $1}')
 
     # Récupérer la charge CPU par cœur
     #CPU_LOAD=$(awk -v INTERVAL=1 '{cpu_now=(+); total_now=(++)} {if (NR>1) {cpu_diff=cpu_now-prev_cpu; total_diff=total_now-prev_total; usage=(cpu_diff*100)/total_diff; print usage "%"}; prev_cpu=cpu_now; prev_total=total_now; fflush(); system("sleep " INTERVAL);}' <(grep 'cpu ' /proc/stat))
@@ -32,7 +33,7 @@ while true; do
     #TX_BYTES=$(cat /sys/class/net/$INTERFACE/statistics/tx_bytes)
 
     # Construire le message JSON
-    MESSAGE=$(printf '{\"ip\": \"%s\", \"cpu_load\": \"%s\", \"network_in\": \"%s\", \"network_out\": \"%s\"}'         "$IP_CLIENT" "$CPU_LOAD" "$RX_BYTES" "$TX_BYTES")
+    MESSAGE=$(printf '{\"pc\": \"%s\", \"ip\": \"%s\", \"cpu_load\": \"%s\", \"network_in\": \"%s\", \"network_out\": \"%s\"}'         "$IP_LOCAL" "$IP_CLIENT" "$CPU_LOAD" "$RX_BYTES" "$TX_BYTES")
 
     # Publier les informations sur le topic MQTT
     mosquitto_pub -h "$BROKER_IP" -u "$MQTT_USER" -P "$MQTT_PASS" -t "$TOPIC" -m "$MESSAGE"

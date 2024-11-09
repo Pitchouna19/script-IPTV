@@ -17,28 +17,26 @@ if [ $? -ne 0 ]; then
 fi
 
 # Filtrage du JSON avec jq pour sélectionner les clients correspondant aux critères
-filtered_ids=$(echo "$json_data" | jq -r --arg ip "$decoded_ip" '.clients[] | select(.ip == $ip and (.type == "flv-play" or .type == "hls-play")) | .id // "0"')
+filtered_data=$(echo "$json_data" | jq -r --arg ip "$decoded_ip" \
+    '.clients[] | select(.ip == $ip and (.type == "flv-play" or .type == "hls-play")) | "\(.id) \(.alive)"')
 
-# Inversion de l'ordre des IDs
-reversed_ids=$(echo "$filtered_ids" | tac)
+# Trier les données par ordre croissant de 'alive'
+sorted_data=$(echo "$filtered_data" | sort -k2,2n)
 
-# Nombre de lignes dans la liste inversée
-num_lines=$(echo "$reversed_ids" | wc -l)
+# Nombre de lignes dans la liste triée
+num_lines=$(echo "$sorted_data" | wc -l)
 
-# Affichage des IDs inversés, à partir de la ligne spécifiée par limite
+# Affichage des ID et des états 'alive' triés, à partir de la ligne spécifiée par limite
 if [ "$limite" -ge "$num_lines" ]; then
-    # Si la limite est supérieure ou égale au nombre d'éléments, ne rien afficher
     echo "Pas assez d'éléments pour afficher à partir de la ligne $limite."
 else
-    # Afficher à partir de la ligne spécifiée par limite
-    echo "IDs filtrés et inversés, à partir de la ligne $limite :"
-    # Afficher à partir de la ligne spécifiée par limite (en ignorant les premières lignes)
-    filtered_ids_to_delete=$(echo "$reversed_ids" | tail -n +$((limite + 1)))
-    echo "$filtered_ids_to_delete"
+    echo "ID et état 'alive' triés par ordre croissant, à partir de la ligne $limite :"
+    data_to_delete=$(echo "$sorted_data" | tail -n +$((limite + 1)))
+    echo "$data_to_delete"
 
     # Suppression pour chaque ID restant
-    for id in $filtered_ids_to_delete; do
-        echo "Suppression du client avec ID : $id"
+    while read -r id alive; do
+        echo "Suppression du client avec ID : $id et état 'alive' : $alive"
         curl -v -X DELETE "http://127.0.0.1:1985/api/v1/clients/$id"
-    done
+    done <<< "$data_to_delete"
 fi

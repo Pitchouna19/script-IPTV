@@ -28,6 +28,7 @@ if [ ! -f "$CACHE_FILE" ]; then
 fi
 
 # Récupérer l'IP locale
+IP_PUBLIC=$(curl -s ifconfig.me | awk '{print $1}')
 IP_CLIENT=$(hostname -I | awk '{print $1}')
 
 # URLs à récupérer
@@ -49,7 +50,7 @@ while true; do
         # Vérifier si le JSON n'est pas vide
         if [[ -n "$json_data" && "$json_data" != "[]" ]]; then
             # Remplacer la valeur de "server" par $IP_CLIENT
-            json_modified=$(echo "$json_data" | sed "s/\"server\": *\"[^\"]*\"/\"server\": \"$IP_CLIENT\"/g")
+            json_modified=$(echo "$json_data" | sed "s/\"server\": *\"[^\"]*\"/\"server\": \"$IP_PUBLIC\"/g")
 
             # Ajouter le JSON modifié à la liste JSON
             JSON_LIST="$JSON_LIST$json_modified,"

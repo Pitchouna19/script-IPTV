@@ -8,8 +8,8 @@ TOPIC="/client/info"
 
 while true; do
     # Récupérer l'IP locale
-    IP_CLIENT=$(hostname -I | awk '{print $1}')
-    IP_LOCAL=$(curl -s ifconfig.me | awk '{print $1}')
+    IP_LOCAL=$(hostname -I | awk '{print $1}')
+    IP_CLIENT=$(curl -s ifconfig.me | awk '{print $1}')
 
     # Récupérer la charge CPU par cœur
     #CPU_LOAD=$(awk -v INTERVAL=1 '{cpu_now=(+); total_now=(++)} {if (NR>1) {cpu_diff=cpu_now-prev_cpu; total_diff=total_now-prev_total; usage=(cpu_diff*100)/total_diff; print usage "%"}; prev_cpu=cpu_now; prev_total=total_now; fflush(); system("sleep " INTERVAL);}' <(grep 'cpu ' /proc/stat))

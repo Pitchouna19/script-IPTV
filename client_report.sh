@@ -35,14 +35,19 @@ while true; do
     # Construire le message JSON
     MESSAGE=$(printf '{\"pc\": \"%s\", \"ip\": \"%s\", \"cpu_load\": \"%s\", \"network_in\": \"%s\", \"network_out\": \"%s\"}'         "$IP_LOCAL" "$IP_CLIENT" "$CPU_LOAD" "$RX_BYTES" "$TX_BYTES")
 
-    # Publier les informations sur le topic MQTT
-    mosquitto_pub -h "$BROKER_IP" -u "$MQTT_USER" -P "$MQTT_PASS" -t "$TOPIC" -m "$MESSAGE"
+    # Vérifier si IP_CLIENT est une adresse IP valide
+    if [[ "$IP_CLIENT" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        # Publier les informations sur le topic MQTT
+        mosquitto_pub -h "$BROKER_IP" -u "$MQTT_USER" -P "$MQTT_PASS" -t "$TOPIC" -m "$MESSAGE"
 
-    # Afficher un message de succès
-    if [ $? -eq 0 ]; then
-        echo "Informations envoyées avec succès au broker MQTT."
+        # Afficher un message de succès
+        if [ $? -eq 0 ]; then
+            echo "Informations envoyées avec succès au broker MQTT."
+        else
+            echo "Erreur lors de l'envoi des informations au broker MQTT."
+        fi
     else
-        echo "Erreur lors de l'envoi des informations au broker MQTT."
+        echo "Adresse IP invalide : $IP_CLIENT. Aucune publication n'a été effectuée."
     fi
 
     # Attendre 10 secondes avant de répéter

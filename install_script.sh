@@ -676,14 +676,7 @@ function installation_client() {
 
     echo "Verification des creations de dossier et fichiers"
     test -d /root/encprofil && echo_green "Le dossier [encprofil] existe" || echo_red "Le dossier [encprofil] n'existe pas"
-    test -d /root/pid && echo_green "Le dossier [pid] existe" || echo_red "Le dossier [pid] n'existe pas"
-
-    echo_green "#######################################################"
-    echo_green "#                                                     #"
-    echo_green "#  Installation du mode Client [Corps MAP] terminée   #"
-    echo_green "#                                                     #"
-    echo_green "#######################################################"
-    
+    test -d /root/pid && echo_green "Le dossier [pid] existe" || echo_red "Le dossier [pid] n'existe pas"  
     
     # Activer et démarrer le service
     echo "Activation et démarrage du service corps_map.service..."
@@ -695,6 +688,38 @@ function installation_client() {
     echo_green "#  Installation du mode Client [Corps MAP] terminée   #"
     echo_green "#                                                     #"
     echo_green "#######################################################"
+
+    sleep 5
+
+    echo "Démarrage de l'installation [PASS] en mode Client..."    
+
+    # Copie du fichier mqtt_pass_listener.sh dans /usr/local/bin
+    echo "Copie du fichier mqtt_pass_listener.sh vers /usr/local/bin..."
+    sudo cp mqtt_pass_listener.sh /usr/local/bin/mqtt_pass_listener.sh
+    
+    # Remplacer les termes 'PPP', 'USPAS', et 'PASW' dans le fichier copié
+    echo "Modification des variables dans le fichier /usr/local/bin/corps_map.sh..."
+    sudo sed -i "s/PPP/$serveur_ip/g" /usr/local/bin/corps_map.sh
+    sudo sed -i "s/USPAS/$utilisateur/g" /usr/local/bin/corps_map.sh
+    sudo sed -i "s/PASW/$mot_de_passe/g" /usr/local/bin/corps_map.sh
+
+    # Rendre le script exécutable
+    sudo chmod +x /usr/local/bin/mqtt_pass_listener.sh
+
+    # Copie du fichier mqtt_pass_listener.service dans /etc/systemd/system/
+    echo "Copie du fichier mqtt_pass_listener.service vers /etc/systemd/system/..."
+    sudo cp mqtt_pass_listener.service /etc/systemd/system/mqtt_pass_listener.service 
+    
+    # Activer et démarrer le service
+    echo "Activation et démarrage du service mqtt_pass_listener.service..."
+    sudo systemctl enable mqtt_pass_listener.service
+    sudo systemctl start mqtt_pass_listener.service
+
+    echo_green "#########################################################"
+    echo_green "#                                                       #"
+    echo_green "#  Installation du mode Client [PASS Listener] terminée #"
+    echo_green "#                                                       #"
+    echo_green "#########################################################"
 
     sleep 5
 }

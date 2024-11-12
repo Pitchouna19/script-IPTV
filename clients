@@ -75,13 +75,13 @@ server {
             local function check_credentials(user, pass)
                 for _, u in ipairs(users.users) do
                     if u.user == user and u.pass == pass then
-                        return true, u.limite, u.groupe
+                        return true, u.limite, u.groupe, u.type, u.geo
                     end
                 end
                 return false
             end
     
-            local authorized, user_limit, user_group = check_credentials(user, pass)
+            local authorized, user_limit, user_group, user_type, user_geo = check_credentials(user, pass)
             if not authorized then
                 ngx.log(ngx.ERR, "Accès refusé : Identifiants incorrects")
                 return redirect_to_404()
@@ -200,7 +200,7 @@ server {
 
             -- Vérifier que le token est bien généré avant de construire l'URL de redirection
             if token then
-                local target_url = "http://" .. best_server .. ":8080/live/" .. matched_channel .. ".flv?token=" .. token .. "&salt=" .. salt .. "&cpi=" .. hex_client_ip .. ":" .. user_limit
+                local target_url = "http://" .. best_server .. ":8080/live/" .. matched_channel .. "." .. user_type .. "?token=" .. token .. "&salt=" .. salt .. "&cpi=" .. hex_client_ip .. ":" .. user_limit
                 ngx.log(ngx.ERR, "Redirection vers: " .. target_url)
                 ngx.redirect(target_url)
             else

@@ -8,7 +8,7 @@ MQTT_USER="USPAS"
 MQTT_PASS="PASW"
 
 # Initialiser le fichier JSON vide s'il n'existe pas
-sudo bash -c "echo '[]' > $JSON_FILE"
+#sudo bash -c "echo '{"pass":"0123456789"}' > $JSON_FILE"
 sudo chmod 666 $JSON_FILE  # S'assurer que le fichier est accessible en écriture
 
 # Fonction pour remplacer le contenu du JSON par le message reçu, uniquement s'il est bien formé

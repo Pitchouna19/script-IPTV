@@ -80,8 +80,14 @@ server {
                 end
                 return false
             end
+            local function get_salt()
+                for _, s in ipairs(users.salt) do
+                    return tonumber(s.salt) -- Convertit en nombre entier
+                end
+            end
     
             local authorized, user_limit, user_group, user_type, user_geo = check_credentials(user, pass)
+            
             if not authorized then
                 ngx.log(ngx.ERR, "Accès refusé : Identifiants incorrects")
                 return redirect_to_404()
@@ -163,9 +169,10 @@ server {
                 return data.pass -- Retourner la clé secrète
             end
 
-            -- Fonction pour générer un *salt* unique en hexadécimal
+            -- Fonction pour générer un *salt* unique en hexadécimal avec la longueur définie par 'salt' dans JSON
             local function generate_salt()
-                local salt_bytes = random.bytes(16) -- Génère 16 octets aléatoires
+                local salt_length = get_salt() or 16 -- Utilise la valeur de salt, ou 16 par défaut si elle n'est pas disponible
+                local salt_bytes = random.bytes(salt_length) -- Génère des octets aléatoires selon la longueur de salt
                 return str.to_hex(salt_bytes) -- Convertit en une chaîne hexadécimale
             end
 
@@ -342,6 +349,32 @@ server {
         add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
         add_header Pragma "no-cache";
         expires off;
-    } 
+    }
+
+    location /update_salt_pass  {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        expires off;
+    }
+
+    location /get_salt_pass {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        expires off;
+    }    
  
 }

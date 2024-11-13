@@ -879,6 +879,40 @@ function installation_serveur() {
     echo_green "###########################################################"
 
     sleep 5
+
+    --
+
+    echo "Démarrage de l'installation [TRASFERT PASS] en mode Serveur..."    
+
+    # Copie du fichier mqtt_pass_transfert.sh dans /usr/local/bin
+    echo "Copie du fichier mqtt_pass_transfert.sh vers /usr/local/bin..."
+    sudo cp mqtt_pass_transfert.sh /usr/local/bin/mqtt_pass_transfert.sh
+    
+    # Remplacer les termes 'PPP', 'USPAS', et 'PASW' dans le fichier copié
+    echo "Modification des variables dans le fichier /usr/local/bin/mqtt_pass_listener.sh..."
+    sudo sed -i "s/PPP/$serveur_ip/g" /usr/local/bin/mqtt_pass_transfert.sh
+    sudo sed -i "s/USPAS/$utilisateur/g" /usr/local/bin/mqtt_pass_transfert.sh
+    sudo sed -i "s/PASW/$mot_de_passe/g" /usr/local/bin/mqtt_pass_transfert.sh
+
+    # Rendre le script exécutable
+    sudo chmod +x /usr/local/bin/mqtt_pass_transfert.sh
+
+    # Copie du fichier mqtt_pass_transfert.service dans /etc/systemd/system/
+    echo "Copie du fichier mqtt_pass_transfert.service vers /etc/systemd/system/..."
+    sudo cp mqtt_pass_transfert.service /etc/systemd/system/mqtt_pass_transfert.service 
+    
+    # Activer et démarrer le service
+    echo "Activation et démarrage du service mqtt_pass_listener.service..."
+    sudo systemctl enable mqtt_pass_transfert.service
+    sudo systemctl start mqtt_pass_transfert.service
+
+    echo_green "#########################################################"
+    echo_green "#                                                       #"
+    echo_green "#  Installation du mode Client [PASS Listener] terminée #"
+    echo_green "#                                                       #"
+    echo_green "#########################################################"
+
+    sleep 5
 }
 
 # Exécution des étapes en fonction du choix

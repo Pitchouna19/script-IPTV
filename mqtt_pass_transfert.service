@@ -3,7 +3,7 @@ Description=Service pour écouter sur le topic /client/info et mettre à jour un
 After=mosquitto.service
 
 [Service]
-ExecStart=/usr/local/bin/mqtt_server_listener.sh
+ExecStart=/usr/local/bin/mqtt_pass_transfert.sh
 Restart=always
 
 [Install]

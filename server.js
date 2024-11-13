@@ -224,6 +224,66 @@ app.post('/cancel-clients', (req, res) => {
     }
 });
 
+// Route pour recevoir la requête POST 'update_salt_pass'
+app.post('/update_salt_pass', (req, res) => {
+    const { pass, salt } = req.body;
+
+    // Vérification que les valeurs 'pass' et 'salt' sont présentes
+    if (!pass || !salt) {
+        return res.json({ success: false, message: "Paramètres pass ou salt manquants." });
+    }
+
+    // Chemins des fichiers à modifier
+    const passFilePath = '/etc/openresty/pass.json';
+    const accesFilePath = '/var/www/html/acces.json';
+
+    try {
+        // 1. Mise à jour du fichier pass.json
+        const passData = { pass: pass };
+        fs.writeFileSync(passFilePath, JSON.stringify(passData, null, 2), 'utf8');
+
+        // 2. Mise à jour du fichier acces.json
+        const accesData = JSON.parse(fs.readFileSync(accesFilePath, 'utf8'));
+
+        // Mise à jour de la valeur de "salt"
+        if (accesData.salt && accesData.salt.length > 0) {
+            accesData.salt[0].salt = salt;
+        } else {
+            // Si le champ salt n'existe pas, on l'ajoute
+            accesData.salt = [{ salt: salt }];
+        }
+
+        // Écriture de acces.json
+        fs.writeFileSync(accesFilePath, JSON.stringify(accesData, null, 2), 'utf8');
+
+        // Envoi de la réponse de succès
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Erreur lors de la mise à jour des fichiers:", error);
+        res.json({ success: false, message: "Erreur lors de la mise à jour des fichiers." });
+    }
+});
+
+app.get('/get_salt_pass', (req, res) => {
+    const passFilePath = '/etc/openresty/pass.json';
+    const accesFilePath = '/var/www/html/acces.json';
+
+    try {
+        // Lecture du fichier pass.json
+        const passData = JSON.parse(fs.readFileSync(passFilePath, 'utf8')).pass;
+
+        // Lecture du fichier acces.json et récupération du premier salt
+        const accesData = JSON.parse(fs.readFileSync(accesFilePath, 'utf8'));
+        const saltData = accesData.salt && accesData.salt.length > 0 ? accesData.salt[0].salt : null;
+
+        // Envoi des données de pass et salt
+        res.json({ success: true, pass: passData, salt: saltData });
+    } catch (error) {
+        console.error("Erreur lors de la lecture des fichiers:", error);
+        res.json({ success: false, message: "Erreur lors de la lecture des fichiers." });
+    }
+});
+
 
 // Démarrer le serveur sur le port 3000
 app.listen(3000, () => {

@@ -880,8 +880,6 @@ function installation_serveur() {
 
     sleep 5
 
-    --
-
     echo "Démarrage de l'installation [TRASFERT PASS] en mode Serveur..."    
 
     # Copie du fichier mqtt_pass_transfert.sh dans /usr/local/bin

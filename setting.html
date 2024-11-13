@@ -342,7 +342,7 @@
          document.getElementById('update-button').addEventListener('click', () => {
          console.log('Le bouton "UPDATE" a été cliqué.'); // Debug: clic sur le bouton
          
-         fetch('http://king.iptv.root.sx:9090/update', { // Utiliser l'URL complète
+         fetch('/update', { // Utiliser l'URL complète
              method: 'POST',
          })
          .then(response => {

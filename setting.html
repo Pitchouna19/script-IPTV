@@ -246,7 +246,83 @@
             </div>
          </div>
       </div>
+      <!-- Nouvelle container TOKEN SALT/PASS -->
+        <div class="container">
+           <div class="label-button" style="margin-right: 10px;">TOKEN SALT/PASS</div>
+           <button class="settings-button" id="token-settings-icon" onclick="toggleTokenSettings()"> 
+              <img src="src-img/settings-icon.png" alt="Settings" />
+           </button>
+           <label id="salt-label" style="display: none; margin-left: 10px;">SALT :</label>
+           <!-- Remplace l input par un select pour SALT -->
+           <select id="salt-select" style="display: none; margin-left: 5px; padding: 5px; border: 2px solid #00f; border-radius: 4px; width: 100px;">
+              <option value="8">8</option>
+              <option value="16">16</option>
+              <option value="32">32</option>
+              <option value="64">64</option>
+              <option value="128">128</option>
+           </select>
+           <label id="pass-label" style="display: none; margin-left: 10px;">PASS :</label>
+           <input type="text" id="pass-input" style="display: none; margin-left: 5px; padding: 5px; border: 2px solid #00f; border-radius: 4px; width: 300px;" />
+           <div class="spacer"></div>
+           <label id="last-update-token" style="margin-left: 10px;">Token Salt/Pass : En attente de chargement...</label>
+           <button id="update-button-token">UPDATE</button>
+        </div>
       <script>
+
+       function toggleTokenSettings() {
+          const saltLabel = document.getElementById("salt-label");
+          const saltSelect = document.getElementById("salt-select");
+          const passLabel = document.getElementById("pass-label");
+          const passInput = document.getElementById("pass-input");
+
+          // Toggle the display style for each element
+          const isHidden = saltLabel.style.display === "none";
+          saltLabel.style.display = isHidden ? "inline-block" : "none";
+          saltSelect.style.display = isHidden ? "inline-block" : "none";
+          passLabel.style.display = isHidden ? "inline-block" : "none";
+          passInput.style.display = isHidden ? "inline-block" : "none";
+       }
+
+       // Fonction pour gérer le clic sur le bouton UPDATE
+           document.getElementById("update-button-token").addEventListener("click", function() {
+              const passInput = document.getElementById("pass-input").value;
+              const saltSelect = document.getElementById("salt-select").value;
+
+              // Vérification que le champ pass-input n'est pas vide
+              if (!passInput) {
+                 alert("Le champ PASS ne doit pas être vide.");
+                 return;
+              }
+
+              // Envoi des données au serveur Node.js
+              fetch('/update_salt_pass', {
+                 method: "POST",
+                 headers: {
+                    "Content-Type": "application/json"
+                 },
+                 body: JSON.stringify({
+                    pass: passInput,
+                    salt: saltSelect
+                 })
+              })
+              .then(response => response.json())
+              .then(data => {
+                 if (data.success) {
+                    alert("Les valeurs ont été mises à jour avec succès.");
+                    loadSaltAndPass();
+                    document.getElementById('token-settings-icon').click(); 
+                 } else {
+                    alert("Échec de la mise à jour.");
+                 }
+              })
+              .catch(error => {
+                 console.error("Erreur:", error);
+                 alert("Une erreur est survenue lors de la mise à jour.");
+              });
+           });
+
+
+
          console.log('Script JavaScript chargé'); // Debug: script chargé
          
          document.getElementById('settings-icon').addEventListener('click', () => {
@@ -902,6 +978,30 @@
                console.error('Erreur lors du chargement des paramètres Kick-Off:', error);
             });
          }
+
+         function loadSaltAndPass() {
+            fetch('/get_salt_pass')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remplissage des champs pass et salt avec les valeurs récupérées
+                        document.getElementById("pass-input").value = data.pass || '';
+                        document.getElementById("salt-select").value = data.salt || '8'; // Valeur par défaut pour salt si null
+                        
+                        // Mise à jour de last-update-token avec data.salt en vert
+                        const lastUpdateToken = document.getElementById("last-update-token");
+                        lastUpdateToken.innerHTML = `Salt : <span style="color: green;">${data.salt}</span> | Pass : <span style="color: green;">${data.pass}</span>`;
+                    } else {
+                        console.error("Erreur lors de la récupération des informations salt et pass:", data.message);
+                        alert("Une erreur est survenue lors du chargement des informations.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Erreur de requête:", error);
+                    alert("Une erreur de connexion est survenue.");
+                });
+        }
+
          
          
          
@@ -912,6 +1012,7 @@
             updateNginxInfo(); // Charger les informations NGINX
             loadBandwidthInfo(); // Charger BandWidth 
             loadKickoffInfo(); // Charger KickOff 
+            loadSaltAndPass(); // Charger Salt et Pass
          });
          
       </script>

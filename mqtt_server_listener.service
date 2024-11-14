@@ -3,7 +3,7 @@ Description=Service pour transferet le changement du pass sur le topic /client/p
 After=mosquitto.service
 
 [Service]
-ExecStart=/usr/local/bin/mqtt_pass_transfert.sh
+ExecStart=/usr/local/bin/mqtt_server_listener.sh
 Restart=always
 
 [Install]

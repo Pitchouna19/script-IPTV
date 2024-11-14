@@ -1,6 +1,9 @@
 server {
     listen 9090;
 
+    access_log /var/log/access.log;
+    error_log /var/log/error.log;
+
     # Lire et définir le server_name en utilisant Lua
     set_by_lua_block $domain {
         local cjson = require "cjson" -- Charger le module cjson pour lire le JSON
@@ -65,36 +68,121 @@ server {
                 return redirect_to_404()
             end
     
-            -- Extraire user et pass depuis l'URI
+            -- Extraire user et pass depuis l URI
             local user, pass = ngx.var.uri:match("/live/([^/]+)/([^/]+)/")
             if not user or not pass then
                 ngx.log(ngx.ERR, "Erreur: Identifiants manquants dans l'URL")
                 return redirect_to_404()
             end
+
+            -- debut authorized user ----------------------------------------------------------------
     
+            local client_geo = ngx.var.remote_addr
+            local cache = ngx.shared.ip_cache -- Assurez-vous que ce bloc de mémoire partagée est défini dans votre configuration Nginx
+
+            -- Function to get the country from client IP using curl
+            local function get_country_from_ip(client_ip)
+                -- Check if the result is already in the cache
+                local cached_result = cache:get(client_ip)
+                if cached_result then
+                    ngx.log(ngx.NOTICE, "Using cached result for IP: ", client_ip)
+                    return cached_result
+                end
+
+                local command = "curl -s http://ipinfo.io/" .. client_ip .. "/country"
+                local handle = io.popen(command)
+                if not handle then
+                    ngx.log(ngx.ERR, "Failed to execute curl command: ", command)
+                    return redirect_to_404()
+                end
+
+                local result = handle:read("*a")
+                handle:close()
+
+                if result == nil or result == "" then
+                    ngx.log(ngx.ERR, "Failed to fetch IP country for IP: ", client_ip)
+                    return redirect_to_404()
+                end
+
+                local country = result:match("%w+")
+                if not country then
+                    ngx.log(ngx.ERR, "Failed to match country from response: ", result)
+                    return redirect_to_404()
+                end
+
+                -- Store the result in the cache with a TTL of 6 hours
+                cache:set(client_ip, country, 3 * 3600)
+
+                return country
+            end
+
+            -- Function to calculate the difference in days between two dates
+            local function date_diff(date_str)
+                local day, month, year = date_str:match("(%d+)/(%d+)/(%d+)")
+                local current_time = os.time()
+                local date_time = os.time({day = day, month = month, year = year})
+                local diff = os.difftime(current_time, date_time) / (24 * 3600)
+                return diff
+            end
+
             -- Vérification des identifiants et des limites
-            local function check_credentials(user, pass)
+            local function check_credentials(user, pass, client_ip)
+                ngx.log(ngx.ERR, "Checking credentials for user: ", user)
                 for _, u in ipairs(users.users) do
+                    ngx.log(ngx.ERR, "Comparing with user: ", u.user)
                     if u.user == user and u.pass == pass then
-                        return true, u.limite, u.groupe, u.type, u.geo
+                        -- Get client country and check against `u.geo`
+                        local country = get_country_from_ip(client_ip)
+                        if country then
+                            ngx.log(ngx.ERR, "Client country: ", country)
+                            if u.geo:find(country) then
+                                if u.valide == "ok" then
+                                    local date_diff = date_diff(u.date_in)
+                                    if tonumber(date_diff) < tonumber(u.date_out_j) then
+                                        return true, u.limite, u.groupe, u.type, u.geo
+                                    else
+                                        ngx.log(ngx.ERR, "Date validation failed for user: ", user)
+                                        return redirect_to_404()
+                                    end
+                                else
+                                    ngx.log(ngx.ERR, "User validation failed for user: ", user)
+                                    return redirect_to_404()
+                                end
+                            else
+                                ngx.log(ngx.ERR, "Geo restriction failed for user: ", user)
+                                return redirect_to_404()
+                            end
+                        else
+                            ngx.log(ngx.ERR, "Failed to get country for IP: ", client_ip)
+                            return redirect_to_404()
+                        end
                     end
                 end
+                ngx.log(ngx.ERR, "Credentials check failed for user: ", user)
                 return false
             end
+
+            ngx.log(ngx.ERR, "User: ", user, " Pass: ", pass)
+
+            local authorized, user_limit, user_group, user_type, user_geo = check_credentials(user, pass, client_geo)
+
+            -- Vous pouvez maintenant utiliser les variables `authorized`, `user_limit`, `user_group`, `user_type`, et `user_geo` selon vos besoins
+            if authorized then
+                ngx.log(ngx.ERR, "User authorized: ", user)
+            else
+                ngx.log(ngx.ERR, "User not authorized: ", user)
+                return redirect_to_404()
+            end
+
+            -- partie fin authorized user ----------------------------------------------------------------
+
             local function get_salt()
                 for _, s in ipairs(users.salt) do
                     return tonumber(s.salt) -- Convertit en nombre entier
                 end
             end
     
-            local authorized, user_limit, user_group, user_type, user_geo = check_credentials(user, pass)
-            
-            if not authorized then
-                ngx.log(ngx.ERR, "Accès refusé : Identifiants incorrects")
-                return redirect_to_404()
-            end
-    
-            -- Extraire l'ID du stream
+            -- Extraire l ID du stream
             local id_stream = ngx.var.uri:match("/live/[^/]+/[^/]+/(.+)")
             if not id_stream then
                 ngx.log(ngx.ERR, "Erreur: ID du stream manquant")
@@ -172,12 +260,12 @@ server {
 
             -- Fonction pour générer un *salt* unique en hexadécimal avec la longueur définie par 'salt' dans JSON
             local function generate_salt()
-                local salt_length = get_salt() or 16 -- Utilise la valeur de salt, ou 16 par défaut si elle n'est pas disponible
+                local salt_length = get_salt() or 16 -- Utilise la valeur de salt, ou 16 par défaut si elle n est pas disponible
                 local salt_bytes = random.bytes(salt_length) -- Génère des octets aléatoires selon la longueur de salt
                 return str.to_hex(salt_bytes) -- Convertit en une chaîne hexadécimale
             end
 
-            -- Fonction pour générer un token avec HMAC-SHA1 en utilisant le *salt* et l'horodatage
+            -- Fonction pour générer un token avec HMAC-SHA1 en utilisant le *salt* et l horodatage
             local function generate_token(salt)
                 local secret_key = get_secret_key()
                 if not secret_key then
@@ -204,9 +292,9 @@ server {
                 return hex_ip
             end
 
-            local hex_client_ip = ip_to_hex(client_ip)  -- Convertir l'IP en hexadécimal
+            local hex_client_ip = ip_to_hex(client_ip)  -- Convertir l IP en hexadécimal
 
-            -- Vérifier que le token est bien généré avant de construire l'URL de redirection
+            -- Vérifier que le token est bien généré avant de construire l URL de redirection
             if token then
                 local target_url = "http://" .. best_server .. ":8080/live/" .. matched_channel .. "." .. user_type .. "?token=" .. token .. "&salt=" .. salt .. "&cpi=" .. hex_client_ip .. ":" .. user_limit
                 ngx.log(ngx.ERR, "Redirection vers: " .. target_url)

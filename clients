@@ -44,7 +44,8 @@ server {
     
             -- Fonction pour rediriger vers 404.mp4
             local function redirect_to_404()
-                local error_url = "http://localhost:9090/live/404.mp4"
+                local client_ip = ngx.var.remote_addr
+                local error_url = "http://" .. client_ip .. ":9090/live/404.mp4"
                 ngx.redirect(error_url)
             end
     

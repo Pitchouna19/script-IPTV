@@ -535,6 +535,8 @@ function installation_openresty_client() {
     sudo systemctl enable openresty                
     sudo systemctl start openresty
     sleep 5
+    # Demarage Module Complementaire 
+    sudo opm get ledgetech/lua-resty-http
 
     if openresty -v &> /dev/null; then
         echo_green "OpenResty Clients installé avec succès."        

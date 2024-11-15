@@ -242,6 +242,11 @@ function installation_node() {
     sleep 5
     echo "Installation du serveur Node Express en cours..."
     cd /var/www/html
+    # Dans le cas d'une erreur
+    #rm -rf node_modules
+    #rm package-lock.json
+    #npm cache verify
+    #npm install
     sudo npm install express
     sleep 5
     echo "Installation du serveur Node Cors en cours..."

@@ -482,7 +482,10 @@ function installation_openresty_server() {
     sudo cp acces.json /var/www/html/
     # Copie du script pass.json  vers le path /etc/openresty/
     sudo cp pass.json /etc/openresty/
-    
+    # Demarage Module Complementaire 
+    sudo opm get ledgetech/lua-resty-http
+
+    sleep 3    
     # Copie du script domaine_script.sh vers le path /usr/local/bin/
     #sudo cp domaine_script.sh /usr/local/bin/
     #chmod +x /usr/local/bin/domaine_script.sh

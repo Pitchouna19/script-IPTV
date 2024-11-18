@@ -12,6 +12,8 @@ sudo chmod 666 $JSON_FILE  # S'assurer que le fichier est accessible en écritur
 
 # Fonction pour mettre à jour ou ajouter un client dans le tableau JSON
 update_or_add_client() {
+
+    sudo echo "[]" >  "$JSON_FILE"
     local message=$1
     local ip=$(echo "$message" | jq -r '.ip')
 
